@@ -1591,7 +1591,13 @@ const generateProducaoPDF = () => {
         if (!dentista || !dentistaTipoTrabalhoSelect) return;
 
         const tiposJaDefinidos = (dentista.valores || []).map(v => v.tipo);
-        const tiposDisponiveis = (state.valores || []).filter(v => !tiposJaDefinidos.includes(v.tipo));
+        let tiposDisponiveis = (state.valores || []).filter(v => !tiposJaDefinidos.includes(v.tipo));
+
+        // Se estiver editando, adicione o tipo de trabalho atual à lista de disponíveis
+        if (editingValorIndex !== null && dentista.valores[editingValorIndex]) {
+            const tipoEmEdicao = dentista.valores[editingValorIndex].tipo;
+            tiposDisponiveis.unshift({ tipo: tipoEmEdicao, valor: 0 }); // Adiciona no início
+        }
 
         dentistaTipoTrabalhoSelect.innerHTML = '<option value="">Selecione o tipo de trabalho</option>';
 
@@ -1655,6 +1661,59 @@ const generateProducaoPDF = () => {
             listaDentistaValores.appendChild(valorEl);
         });
         toggleValuesVisibility();
+    };
+
+    let editingValorIndex = null; // Para rastrear a edição de preços de dentistas
+
+    const cancelEditDentistaValor = () => {
+        editingValorIndex = null;
+        formDentistaValores.reset();
+
+        const submitBtn = formDentistaValores.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.textContent = 'Adicionar';
+        }
+
+        const cancelBtn = document.getElementById('cancel-dentista-valor-btn');
+        if (cancelBtn) {
+            cancelBtn.remove();
+        }
+
+        // Re-renderizar o select para remover o tipo que estava em edição (se for o caso)
+        const dentistaId = parseInt(dentistaEditIdInput.value);
+        if(dentistaId) {
+            renderizarSelectTiposTrabalhoDentista(dentistaId);
+        }
+    };
+
+    const startEditDentistaValor = (dentistaId, index) => {
+        const dentista = state.dentistas.find(d => d.id === dentistaId);
+        if (!dentista || !dentista.valores || !dentista.valores[index]) return;
+
+        editingValorIndex = index;
+        const valorData = dentista.valores[index];
+
+        renderizarSelectTiposTrabalhoDentista(dentistaId);
+
+        dentistaTipoTrabalhoSelect.value = valorData.tipo;
+        dentistaValorTrabalhoInput.value = valorData.valor;
+
+        const submitBtn = formDentistaValores.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.textContent = 'Salvar Alteração';
+        }
+
+        if (!document.getElementById('cancel-dentista-valor-btn')) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.id = 'cancel-dentista-valor-btn';
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.addEventListener('click', cancelEditDentistaValor);
+            formDentistaValores.querySelector('div').appendChild(cancelBtn);
+        }
+
+        formDentistaValores.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
     const startEditDentista = (id) => {
@@ -2014,20 +2073,29 @@ const generateProducaoPDF = () => {
             const tipo = dentistaTipoTrabalhoSelect.value;
             const valor = parseFloat(dentistaValorTrabalhoInput.value);
 
-            if (tipo && !isNaN(valor) && valor >= 0) {
-                const dentista = state.dentistas.find(d => d.id === dentistaId);
-                if (dentista) {
-                    if (!dentista.valores) dentista.valores = [];
-                    // Adiciona o novo valor e re-renderiza
-                    dentista.valores.push({ tipo, valor });
-                    renderizarValoresDentista(dentistaId);
-                    formDentistaValores.reset();
-                    // Foca no campo de valor para inserção rápida do próximo
-                    dentistaValorTrabalhoInput.focus();
+            if (!tipo || isNaN(valor) || valor < 0) {
+                showToast("Por favor, selecione um tipo de trabalho e insira um valor válido.");
+                return;
+            }
+
+            const dentista = state.dentistas.find(d => d.id === dentistaId);
+            if (!dentista) return;
+
+            if (editingValorIndex !== null) {
+                // Atualizando um valor existente
+                if (dentista.valores && dentista.valores[editingValorIndex]) {
+                    dentista.valores[editingValorIndex] = { tipo, valor };
+                    showToast("Preço atualizado com sucesso!", "success");
                 }
             } else {
-                showToast("Por favor, selecione um tipo de trabalho e insira um valor válido.");
+                // Adicionando um novo valor
+                if (!dentista.valores) dentista.valores = [];
+                dentista.valores.push({ tipo, valor });
+                showToast("Preço adicionado com sucesso!", "success");
             }
+
+            renderizarValoresDentista(dentistaId);
+            cancelEditDentistaValor(); // Reseta o formulário e o estado de edição
         });
     }
 
@@ -2035,24 +2103,12 @@ const generateProducaoPDF = () => {
         listaDentistaValores.addEventListener('click', async (e) => {
             const removeBtn = e.target.closest('.remove-dentista-valor-btn');
             const editBtn = e.target.closest('.edit-dentista-valor-btn');
+            const dentistaId = parseInt(dentistaEditIdInput.value);
 
             if (editBtn) {
-                const dentistaId = parseInt(dentistaEditIdInput.value);
                 const index = parseInt(editBtn.dataset.index);
-                const dentista = state.dentistas.find(d => d.id === dentistaId);
-                if (dentista && dentista.valores && dentista.valores[index]) {
-                    const valorAtual = dentista.valores[index];
-                    const novoValor = prompt(`Editar valor para "${valorAtual.tipo}":`, valorAtual.valor);
-                    if (novoValor !== null && !isNaN(novoValor) && parseFloat(novoValor) >= 0) {
-                        dentista.valores[index].valor = parseFloat(novoValor);
-                        renderizarValoresDentista(dentistaId);
-                        showToast("Preço atualizado.", "success");
-                    } else if (novoValor !== null) {
-                        showToast("Por favor, insira um valor numérico válido.");
-                    }
-                }
+                startEditDentistaValor(dentistaId, index);
             } else if (removeBtn) {
-                const dentistaId = parseInt(dentistaEditIdInput.value);
                 const index = parseInt(removeBtn.dataset.index);
                 const dentista = state.dentistas.find(d => d.id === dentistaId);
                 if (dentista && dentista.valores && dentista.valores[index]) {
