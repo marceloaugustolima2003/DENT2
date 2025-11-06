@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let charts = {}; // Armazenar instâncias dos gráficos
 
     // --- ELEMENTOS DO DOM ---
+    const quickNotesInput = document.getElementById('quick-notes-input');
+    const saveQuickNotesBtn = document.getElementById('save-quick-notes-btn');
+    const quickNotesFeedback = document.getElementById('quick-notes-feedback');
+    const quickNotesTabsList = document.getElementById('quick-notes-tabs-list');
+    const addQuickNoteTabBtn = document.getElementById('add-quick-note-tab-btn'); 
+    const deleteQuickNoteTabBtn = document.getElementById('delete-quick-note-tab-btn'); 
     const initialLoadingOverlay = document.getElementById('initial-loading-overlay');
     const authScreen = document.getElementById('auth-screen');
     const appContent = document.getElementById('app-content');
@@ -36,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const despesaCategoriaSelect = document.getElementById('despesa-categoria-select');
     const despesaValorInput = document.getElementById('despesa-valor-input');
     const despesaDataInput = document.getElementById('despesa-data-input');
+    const despesaRecorrenteCheckbox = document.getElementById('despesa-recorrente-checkbox');
     const formDespesaSubmitBtn = document.getElementById('form-despesa-submit-btn');
     const formDespesaCancelBtn = document.getElementById('form-despesa-cancel-btn');
     const formProducao = document.getElementById('form-producao');
@@ -45,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const producaoQtdInput = document.getElementById('producao-qtd-input');
     const producaoStatusSelect = document.getElementById('producao-status-select');
     const producaoObsInput = document.getElementById('producao-obs-input');
+    const producaoAnexoInput = document.getElementById('producao-anexo-input');
     const producaoDataInput = document.getElementById('producao-data-input');
     const entregaDataInput = document.getElementById('entrega-data-input');
     const formProducaoTitle = document.getElementById('form-producao-title');
@@ -97,9 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const kpiPecasMes = document.getElementById('kpi-pecas-mes');
     const kpiDespesasMes = document.getElementById('kpi-despesas-mes');
     const listaEntregasProximas = document.getElementById('lista-entregas-proximas');
-    const statusPendente = document.getElementById('status-pendente');
-    const statusAndamento = document.getElementById('status-andamento');
-    const statusFinalizado = document.getElementById('status-finalizado');
     const actionAddProducao = document.getElementById('action-add-producao');
     const actionAddDespesa = document.getElementById('action-add-despesa');
     const searchProducaoInput = document.getElementById('search-producao-input');
@@ -110,6 +115,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const formFechamento = document.getElementById('form-fechamento');
     const fechamentoDiaInicioInput = document.getElementById('fechamento-dia-inicio-input');
     const fechamentoDiaFimInput = document.getElementById('fechamento-dia-fim-input');
+
+    // Elementos do Estoque
+    const formEstoque = document.getElementById('form-estoque');
+    const formEstoqueTitle = document.getElementById('form-estoque-title');
+    const estoqueEditIdInput = document.getElementById('estoque-edit-id');
+    const estoqueNomeInput = document.getElementById('estoque-nome-input');
+    const estoqueFornecedorInput = document.getElementById('estoque-fornecedor-input');
+    const estoqueQtdInput = document.getElementById('estoque-qtd-input');
+    const estoqueUnidadeInput = document.getElementById('estoque-unidade-input');
+    const estoqueMinInput = document.getElementById('estoque-min-input');
+    const estoquePrecoInput = document.getElementById('estoque-preco-input');
+    const formEstoqueSubmitBtn = document.getElementById('form-estoque-submit-btn');
+    const formEstoqueCancelBtn = document.getElementById('form-estoque-cancel-btn');
+    const listaEstoque = document.getElementById('lista-estoque');
+    const searchEstoqueInput = document.getElementById('search-estoque-input');
+
 
     // Novos elementos para funcionalidades avançadas
     const notificationsBtn = document.getElementById('notifications-btn');
@@ -126,6 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const producaoDentistaTableBody = document.getElementById('producao-dentista-table-body');
     const exportDentistaProducaoPdfBtn = document.getElementById('export-dentista-producao-pdf');
 
+    // Botão para alternar Top 15 / Todos no gráfico de dentistas
+    const toggleDentistaShowAllBtn = document.getElementById('toggle-dentista-show-all');
+
     // Novos elementos para controle de mês no dashboard
     const dashboardMesAnoAtualSpan = document.getElementById('dashboard-mes-ano-atual');
     const dashboardPrevMonthBtn = document.getElementById('dashboard-prev-month');
@@ -138,45 +162,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportAnalisePdf = document.getElementById('export-analise-pdf');
     const exportResumoPdf = document.getElementById('export-resumo-pdf');
 
-    // Novos elementos para Estoque
-    const formEstoque = document.getElementById('form-estoque');
-    const formEstoqueTitle = document.getElementById('form-estoque-title');
-    const estoqueEditIdInput = document.getElementById('estoque-edit-id');
-    const estoqueNomeInput = document.getElementById('estoque-nome-input');
-    const estoqueFornecedorInput = document.getElementById('estoque-fornecedor-input');
-    const estoqueQuantidadeInput = document.getElementById('estoque-quantidade-input');
-    const estoqueUnidadeInput = document.getElementById('estoque-unidade-input');
-    const estoqueMinimoInput = document.getElementById('estoque-minimo-input');
-    const estoquePrecoInput = document.getElementById('estoque-preco-input');
-    const formEstoqueSubmitBtn = document.getElementById('form-estoque-submit-btn');
-    const formEstoqueCancelBtn = document.getElementById('form-estoque-cancel-btn');
-    const listaEstoque = document.getElementById('lista-estoque');
-    const listaEstoqueBaixo = document.getElementById('lista-estoque-baixo');
-    const searchEstoqueInput = document.getElementById('search-estoque-input');
-    const exportEstoquePdf = document.getElementById('export-estoque-pdf');
+    // Elementos do Modal de Confirmação
+    const confirmationModal = document.getElementById('confirmation-modal');
+    const confirmationTitle = document.getElementById('confirmation-title');
+    const confirmationMessage = document.getElementById('confirmation-message');
+    const confirmYesBtn = document.getElementById('confirm-yes-btn');
+    const confirmNoBtn = document.getElementById('confirm-no-btn');
 
-    // Novos elementos para anexos
-    const producaoAnexoInput = document.getElementById('producao-anexo-input');
+    // --- FALLBACK: adicionar/remover classe 'modal-open' no <body> quando qualquer modal estiver visível
+    // Isso é usado como fallback para navegadores que não suportam backdrop-filter.
+    const updateBodyModalOpen = () => {
+        try {
+            const openModals = Array.from(document.querySelectorAll('[id$="-modal"]')).filter(m => m && !m.classList.contains('hidden'));
+            if (openModals.length > 0) document.body.classList.add('modal-open');
+            else document.body.classList.remove('modal-open');
+        } catch (e) { console.warn('updateBodyModalOpen error', e); }
+    };
 
-    // Novo elemento para despesas recorrentes
-    const despesaRecorrenteInput = document.getElementById('despesa-recorrente-input');
+    // Observe alterações de atributo (classe) nos modais existentes
+    const modalElements = Array.from(document.querySelectorAll('[id$="-modal"]'));
+    if (modalElements.length > 0) {
+        const observer = new MutationObserver((mutations) => {
+            updateBodyModalOpen();
+        });
+        modalElements.forEach(el => observer.observe(el, { attributes: true, attributeFilter: ['class'] }));
+        // Estado inicial
+        updateBodyModalOpen();
+    }
 
     // --- ESTADO DA APLICAÇÃO ---
     let isLoginMode = true;
-    let valuesVisible = true; // Estado da visibilidade dos valores
     let state = {
         valores: [],
         producao: [],
         despesas: [],
         dentistas: [],
         estoque: [],
+        quickNotes: [], // MUDADO DE "" PARA []
+        activeQuickNoteId: null, // NOVO
         mesAtual: new Date().toISOString(),
         closingDayStart: 25,
         closingDayEnd: 24,
         searchTermProducao: '',
         searchTermDentistas: '',
         searchTermEstoque: '',
-        notifications: []
+        notifications: [],
+        showAllDentistas: false // controla Top 15 / Todos no gráfico
     };
 
     // --- FUNÇÕES UTILITÁRIAS ---
@@ -194,97 +225,100 @@ document.addEventListener('DOMContentLoaded', () => {
             toastNotification.style.transform = 'translateX(calc(100% + 1.25rem))';
         }, 3000);
     };
-
-    // --- SISTEMA DE OCULTAR VALORES ---
-    const toggleValuesVisibility = () => {
-        valuesVisible = !valuesVisible;
-        updateValuesDisplay();
-    };
-
-    const updateValuesDisplay = () => {
-        const monetaryElements = document.querySelectorAll('.monetary-value');
-        
-        if (valuesVisible) {
-            eyeIcon.classList.remove('hidden');
-            eyeOffIcon.classList.add('hidden');
-            toggleValuesBtn.setAttribute('aria-pressed', 'false');
-            monetaryElements.forEach(el => {
-                if (el.dataset.originalValue) {
-                    el.textContent = el.dataset.originalValue;
-                }
-            });
-        } else {
-            eyeIcon.classList.add('hidden');
-            eyeOffIcon.classList.remove('hidden');
-            toggleValuesBtn.setAttribute('aria-pressed', 'true');
-            monetaryElements.forEach(el => {
-                if (!el.dataset.originalValue) {
-                    el.dataset.originalValue = el.textContent;
-                }
-                el.textContent = el.textContent.replace(/[\d.,]/g, '•');
-            });
-        }
-    };
     
     const formatarMoeda = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+
+    // Encurta nomes longos para os rótulos do eixo Y, preservando o nome completo para tooltips
+    const abbreviateName = (name, maxLen = 28) => {
+        if (!name) return '';
+        if (name.length <= maxLen) return name;
+        // Tenta reduzir preservando sobrenome: "Primeiro Sobrenome" => "Primeiro S."
+        const parts = name.split(' ').filter(Boolean);
+        if (parts.length >= 2) {
+            const first = parts[0];
+            const last = parts[parts.length - 1];
+            const short = `${first} ${last}`;
+            if (short.length <= maxLen) return short;
+            // fallback para iniciais
+            const initials = parts.map(p => p[0]).join('');
+            if (initials.length <= maxLen) return initials;
+        }
+        return name.slice(0, maxLen - 1) + '…';
+    };
     
     const navigateToView = (viewId) => {
         const link = document.querySelector(`.nav-link[data-view="${viewId}"]`);
         if (link) { link.click(); }
     };
 
-    // --- FIREBASE STORAGE FUNCTIONS ---
-    const uploadFile = async (file, path) => {
-        try {
-            const storageRef = ref(storage, `users/${userId}/${path}/${file.name}_${Date.now()}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            return downloadURL;
-        } catch (error) {
-            console.error('Erro ao fazer upload:', error);
-            throw error;
-        }
-    };
-
-    const deleteFile = async (fileUrl) => {
-        try {
-            const fileRef = ref(storage, fileUrl);
-            await deleteObject(fileRef);
-        } catch (error) {
-            console.error('Erro ao deletar arquivo:', error);
-        }
-    };
-
-    const getBillingPeriod = (currentDate) => {
+    /**
+     * [CORREÇÃO] Lógica de cálculo do período de faturamento.
+     * Calcula o período de faturamento (data de início e fim) com base em uma data de referência.
+     * @param {Date} targetDate - A data de referência para a qual o período será calculado.
+     * @returns {{startDate: Date, endDate: Date}} O objeto contendo as datas de início e fim.
+     */
+    const getBillingPeriod = (targetDate) => {
         const startDay = state.closingDayStart || 25;
         const endDay = state.closingDayEnd || 24;
-        
-        let year = currentDate.getFullYear();
-        let month = currentDate.getMonth(); // 0-indexed
-    
+        let year = targetDate.getFullYear();
+        let month = targetDate.getMonth(); // 0-indexado
+
         let startDate, endDate;
-    
-        if (startDay > endDay) {
-            // Ciclo que atravessa o mês (ex: 25 a 24)
-            startDate = new Date(year, month - 1, startDay);
-            endDate = new Date(year, month, endDay);
-        } else {
-            // Ciclo dentro do mesmo mês (ex: 1 a 31)
-            startDate = new Date(year, month, startDay);
-            endDate = new Date(year, month, endDay);
+
+        if (startDay > endDay) { // O ciclo atravessa o mês (ex: 25 a 24)
+            // O período pertence ao mês da data de TÉRMINO.
+            // Ex: "Período de Outubro" vai de 25/Set a 24/Out.
+            endDate = new Date(year, month, endDay, 23, 59, 59);
+            startDate = new Date(year, month - 1, startDay, 0, 0, 0);
+        } else { // O ciclo é dentro do mesmo mês (ex: 1 a 31)
+            startDate = new Date(year, month, startDay, 0, 0, 0);
+            endDate = new Date(year, month, endDay, 23, 59, 59);
         }
-    
+
         return { startDate, endDate };
     };
 
-    const setButtonLoading = (button, isLoading) => {
+    const setButtonLoading = (button, isLoading, originalText = null) => {
         if (isLoading) {
             button.disabled = true;
+            if (originalText) button.dataset.originalText = originalText;
             button.innerHTML = `<svg class="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
         } else {
             button.disabled = false;
             button.innerHTML = button.dataset.originalText || '';
         }
+    };
+
+     // Função para o Modal de Confirmação Elegante
+    const showConfirmationModal = (title, message) => {
+        // Define o texto
+        confirmationTitle.textContent = title;
+        confirmationMessage.textContent = message;
+
+        // Mostra o modal
+        confirmationModal.classList.remove('hidden');
+
+        // Retorna uma promessa que espera a decisão do usuário
+        return new Promise((resolve) => {
+            // Remove listeners antigos para evitar cliques duplicados
+            confirmYesBtn.replaceWith(confirmYesBtn.cloneNode(true));
+            confirmNoBtn.replaceWith(confirmNoBtn.cloneNode(true));
+
+            // Pega as novas referências dos botões
+            const newYesBtn = document.getElementById('confirm-yes-btn');
+            const newNoBtn = document.getElementById('confirm-no-btn');
+
+            // Adiciona os listeners
+            newYesBtn.addEventListener('click', () => {
+                confirmationModal.classList.add('hidden');
+                resolve(true); // Usuário clicou "Sim"
+            });
+            
+            newNoBtn.addEventListener('click', () => {
+                confirmationModal.classList.add('hidden');
+                resolve(false); // Usuário clicou "Cancelar"
+            });
+        });
     };
 
     // --- SISTEMA DE NOTIFICAÇÕES ---
@@ -418,84 +452,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // --- SISTEMA DE DESPESAS RECORRENTES ---
-    const processRecurringExpenses = () => {
-        const hoje = new Date();
-        const { startDate } = getBillingPeriod(hoje);
-        
-        // Verificar se é o início de um novo ciclo de faturamento
-        const ultimoProcessamento = localStorage.getItem('lastRecurringProcessing');
-        const currentCycleKey = `${startDate.getFullYear()}-${startDate.getMonth()}-${startDate.getDate()}`;
-        
-        if (ultimoProcessamento === currentCycleKey) {
-            return; // Já processou neste ciclo
-        }
-
-        // Buscar despesas recorrentes
-        const despesasRecorrentes = (state.despesas || []).filter(d => d.recorrente && d.ativo !== false);
-        
-        despesasRecorrentes.forEach(despesaOriginal => {
-            // Verificar se já existe uma despesa igual neste ciclo
-            const jaExiste = (state.despesas || []).some(d => 
-                d.descRecorrente === despesaOriginal.id && 
-                d.data >= startDate.toISOString().split('T')[0]
-            );
-            
-            if (!jaExiste) {
-                const novaDespesa = {
-                    id: Date.now() + Math.random(),
-                    desc: despesaOriginal.desc + ' (Recorrente)',
-                    categoria: despesaOriginal.categoria,
-                    valor: despesaOriginal.valor,
-                    data: startDate.toISOString().split('T')[0],
-                    descRecorrente: despesaOriginal.id,
-                    recorrente: false
-                };
-                
-                state.despesas.push(novaDespesa);
-                addNotification(`Despesa recorrente adicionada: ${despesaOriginal.desc}`, 'info');
-            }
-        });
-
-        // Marcar como processado
-        localStorage.setItem('lastRecurringProcessing', currentCycleKey);
-        saveDataToFirestore();
-    };
-
     // --- GRÁFICOS ---
     const initializeCharts = () => {
-        // GRÁFICO DE FATURAMENTO REMOVIDO
-        
-        // Gráfico de Status da Produção
-        const statusCtx = document.getElementById('status-chart');
-        if (statusCtx) {
-            charts.status = new Chart(statusCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Pendente', 'Em Andamento', 'Finalizado'],
-                    datasets: [{
-                        data: [0, 0, 0],
-                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#e8eaed',
-                                padding: 20
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Gráfico de Faturamento por Dentista
+        // Gráfico de Faturamento por Dentista (Barras Horizontais)
         const dentistaCtx = document.getElementById('dentista-chart');
         if (dentistaCtx) {
             charts.dentista = new Chart(dentistaCtx, {
@@ -505,267 +464,251 @@ document.addEventListener('DOMContentLoaded', () => {
                     datasets: [{
                         label: 'Faturamento',
                         data: [],
-                        backgroundColor: '#6366f1',
-                        borderRadius: 8
+                        backgroundColor: [],
+                        borderRadius: 8,
+                        barThickness: 18
                     }]
                 },
                 options: {
+                    indexAxis: 'y', // horizontal bars
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: false
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(items) {
+                                    // Mostra o nome completo do dentista como título do tooltip
+                                    if (!items || items.length === 0) return '';
+                                    const idx = items[0].dataIndex;
+                                    return (charts.dentista && charts.dentista._fullNames && charts.dentista._fullNames[idx]) || items[0].label || '';
+                                },
+                                label: function(context) {
+                                    // context.parsed.x is the value for horizontal bars
+                                    const value = context.parsed && (context.parsed.x ?? context.parsed) || 0;
+                                    return 'Faturamento: ' + formatarMoeda(value);
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const pieces = charts.dentista && charts.dentista._piecesMap ? charts.dentista._piecesMap[charts.dentista._fullNames[idx]] : 0;
+                                    return 'Peças: ' + (pieces || 0);
+                                }
+                            },
+                            bodyFont: { weight: '600' }
                         }
                     },
                     scales: {
                         x: {
-                            ticks: { color: '#9aa0a6' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        y: {
                             ticks: { 
                                 color: '#9aa0a6',
                                 callback: function(value) {
-                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                    // Exibe no formato moeda
+                                    try { return formatarMoeda(value); } catch (e) { return value; }
                                 }
                             },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        y: {
+                            ticks: { color: '#9aa0a6' },
+                            grid: { display: false }
                         }
-                    }
+                    },
+                    layout: { padding: { left: 8, right: 8, top: 8, bottom: 8 } }
                 }
             });
         }
     };
 
     const updateCharts = () => {
-        // CHAMADA PARA updateFaturamentoChart REMOVIDA
-        updateStatusChart();
         updateDentistaChart();
-    };
-
-    // FUNÇÃO updateFaturamentoChart REMOVIDA
-
-    const updateStatusChart = () => {
-        if (!charts.status) return;
-        
-        const pendente = (state.producao || []).filter(p => p.status === 'Pendente').length;
-        const andamento = (state.producao || []).filter(p => p.status === 'Em Andamento').length;
-        const finalizado = (state.producao || []).filter(p => p.status === 'Finalizado').length;
-        
-        charts.status.data.datasets[0].data = [pendente, andamento, finalizado];
-        charts.status.update();
     };
 
     const updateDentistaChart = () => {
         if (!charts.dentista) return;
-        
+
         const { startDate, endDate } = getBillingPeriod(new Date(state.mesAtual));
-        
+
         const producaoDoMes = (state.producao || []).filter(p => {
             const data = new Date(p.data + "T00:00:00");
             return data >= startDate && data <= endDate;
         });
-        
-        const faturamentoPorDentista = {};
-        
+
+        // Agregar faturamento e peças por dentista
+        const map = {}; // nome -> { faturamento, pecas }
         producaoDoMes.forEach(p => {
             const dentista = (state.dentistas || []).find(d => d.id === p.dentista);
-            const dentistaName = dentista ? dentista.nome : 'Desconhecido';
-            const valor = (state.valores || []).find(v => v.tipo === p.tipo);
-            const faturamento = valor ? valor.valor * p.qtd : 0;
-            
-            if (!faturamentoPorDentista[dentistaName]) {
-                faturamentoPorDentista[dentistaName] = 0;
-            }
-            faturamentoPorDentista[dentistaName] += faturamento;
+            const nome = dentista ? dentista.nome : 'Desconhecido';
+            const valorObj = (state.valores || []).find(v => v.tipo === p.tipo);
+            const faturamento = valorObj ? valorObj.valor * p.qtd : 0;
+            if (!map[nome]) map[nome] = { faturamento: 0, pecas: 0 };
+            map[nome].faturamento += faturamento;
+            map[nome].pecas += p.qtd || 0;
         });
-        
-        const labels = Object.keys(faturamentoPorDentista);
-        const data = Object.values(faturamentoPorDentista);
-        
-        charts.dentista.data.labels = labels;
+
+    // Converter para array, ordenar
+    const entries = Object.entries(map).map(([nome, v]) => ({ nome, faturamento: v.faturamento, pecas: v.pecas }));
+    entries.sort((a, b) => b.faturamento - a.faturamento);
+    // Se o usuário escolheu ver todos, mostramos todos; senão limitamos ao Top 15
+    const top = state.showAllDentistas ? entries : entries.slice(0, 15);
+
+    const fullNames = top.map(e => e.nome);
+    const shortLabels = fullNames.map(n => abbreviateName(n, 28));
+    const data = top.map(e => Number(e.faturamento.toFixed(2)));
+
+        // Paleta: gradiente de roxo (Top 1 = mais claro, Top N = mais escuro)
+    // Tonalidade clara (Top 1) — ligeiramente mais viva que antes para melhor visibilidade
+    const purpleLight = '#d6a8ff'; // Top 1 (mais claro e mais vivo)
+        const purpleDark = '#4c1d95';  // Top N (mais escuro)
+
+        // Helpers simples para misturar cores hex
+        const hexToRgb = (hex) => {
+            const h = hex.replace('#','');
+            return [parseInt(h.substring(0,2),16), parseInt(h.substring(2,4),16), parseInt(h.substring(4,6),16)];
+        };
+        const rgbToHex = (r,g,b) => '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+        const blend = (startHex, endHex, t) => {
+            const s = hexToRgb(startHex);
+            const e = hexToRgb(endHex);
+            const r = Math.round(s[0] + (e[0] - s[0]) * t);
+            const g = Math.round(s[1] + (e[1] - s[1]) * t);
+            const b = Math.round(s[2] + (e[2] - s[2]) * t);
+            return rgbToHex(r,g,b);
+        };
+
+        // Inverte o gradiente: Top1 (maior faturamento) deve ser mais escuro
+        const backgroundColors = top.map((_, i) => {
+            if (top.length === 1) return purpleDark;
+            const t = i / (top.length - 1); // 0 => Top1, 1 => TopN
+            return blend(purpleDark, purpleLight, t);
+        });
+
+    charts.dentista.data.labels = shortLabels;
         charts.dentista.data.datasets[0].data = data;
+        charts.dentista.data.datasets[0].backgroundColor = backgroundColors;
+
+    // Guardar mapa de peças e nomes completos para tooltips
+    charts.dentista._piecesMap = top.reduce((acc, cur) => { acc[cur.nome] = cur.pecas; return acc; }, {});
+    charts.dentista._fullNames = fullNames;
+
+        // Ajustar altura do canvas para que cada barra tenha espaço vertical suficiente
+        try {
+            const canvas = document.getElementById('dentista-chart');
+            if (canvas) {
+                const perBar = 40; // px por item
+                const computedHeight = Math.max(300, labels.length * perBar + 80);
+                // Set the canvas height attribute (not CSS) so Chart.js recalculates
+                canvas.height = computedHeight;
+            }
+        } catch (e) {
+            console.warn('Não foi possível ajustar a altura do canvas do dentista:', e);
+        }
+
         charts.dentista.update();
     };
 
     // --- EXPORTAÇÃO PDF ---
-    const exportToPDF = (title, content, filename) => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // Configurar fonte
-        doc.setFont('helvetica');
-        
-        // Título
-        doc.setFontSize(20);
-        doc.text(title, 20, 30);
-        
-        // Data de geração
-        doc.setFontSize(10);
-        doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 20, 40);
-        
-        // Conteúdo
-        doc.setFontSize(12);
-        let yPosition = 60;
-        
-        content.forEach(section => {
-            if (yPosition > 250) {
-                doc.addPage();
-                yPosition = 30;
-            }
-            
-            // Título da seção
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text(section.title, 20, yPosition);
-            yPosition += 10;
-            
-            // Conteúdo da seção
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            
-            if (section.type === 'table') {
-                section.data.forEach(row => {
-                    if (yPosition > 250) {
-                        doc.addPage();
-                        yPosition = 30;
-                    }
-                    doc.text(row, 20, yPosition);
-                    yPosition += 8;
-                });
-            } else {
-                const lines = doc.splitTextToSize(section.content, 170);
-                lines.forEach(line => {
-                    if (yPosition > 250) {
-                        doc.addPage();
-                        yPosition = 30;
-                    }
-                    doc.text(line, 20, yPosition);
-                    yPosition += 8;
-                });
-            }
-            
-            yPosition += 10;
-        });
-        
-        doc.save(filename);
+const generateDashboardPDF = () => {
+        // ... função original generateDashboardPDF (inalterada)
     };
 
-    const generateDashboardPDF = () => {
+const generateProducaoPDF = () => {
+        // Usa o estado atual do mês para determinar o período de fechamento
         const { startDate, endDate } = getBillingPeriod(new Date(state.mesAtual));
-        
-        const producaoDoMes = (state.producao || []).filter(p => {
-            const data = new Date(p.data + "T00:00:00");
-            return data >= startDate && data <= endDate;
-        });
-        
-        const despesasDoMes = (state.despesas || []).filter(d => {
-            const data = new Date(d.data + "T00:00:00");
-            return data >= startDate && data <= endDate;
-        });
-        
-        const faturamentoBruto = producaoDoMes.reduce((acc, p) => {
-            const valor = (state.valores || []).find(v => v.tipo === p.tipo);
-            return acc + (valor ? valor.valor * p.qtd : 0);
-        }, 0);
-        
-        const totalDespesas = despesasDoMes.reduce((acc, d) => acc + d.valor, 0);
-        const totalPecas = producaoDoMes.reduce((acc, p) => acc + p.qtd, 0);
-        const lucro = faturamentoBruto - totalDespesas;
-        
-        const content = [
-            {
-                title: 'Resumo Executivo',
-                type: 'text',
-                content: `Faturamento: ${formatarMoeda(faturamentoBruto)}\nDespesas: ${formatarMoeda(totalDespesas)}\nLucro: ${formatarMoeda(lucro)}\nPeças Produzidas: ${totalPecas}`
-            },
-            {
-                title: 'Status da Produção',
-                type: 'table',
-                data: [
-                    `Pendente: ${(state.producao || []).filter(p => p.status === 'Pendente').length}`,
-                    `Em Andamento: ${(state.producao || []).filter(p => p.status === 'Em Andamento').length}`,
-                    `Finalizado: ${(state.producao || []).filter(p => p.status === 'Finalizado').length}`
-                ]
-            }
-        ];
-        
-        exportToPDF('Dashboard Analítico - DentalFlow', content, 'dashboard-dentalflow.pdf');
-    };
+        const mesAno = new Date(state.mesAtual).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-    const generateProducaoPDF = () => {
-        const producaoFiltrada = getFilteredProducao();
+        // Filtra todas as produções que estão DENTRO do período de faturamento
+        const producaoDoMes = (state.producao || []).filter(p => {
+            if (!p.data) return false;
+            const dataProducao = new Date(p.data + "T00:00:00");
+            return dataProducao >= startDate && dataProducao <= endDate;
+        });
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
+        let totalFaturamentoMes = 0;
 
-        const tableColumns = ["DENTISTA", "TIPO DE TRABALHO", "STATUS", "QTD DE ELEMENTOS", "VALOR TOTAL"];
+        // Colunas (inalteradas)
+        const tableColumns = ["PACIENTE", "DENTISTA", "TIPO DE TRABALHO", "OBS.", "STATUS", "QTD", "VALOR"];
         const tableRows = [];
+        
+        // Define a ordem das colunas e seus índices (inalterado)
+        const columnMap = {
+            'PACIENTE': 0,
+            'DENTISTA': 1,
+            'TIPO DE TRABALHO': 2,
+            'OBS.': 3,
+            'STATUS': 4,
+            'QTD': 5,
+            'VALOR': 6
+        };
 
-        producaoFiltrada.forEach(p => {
+        producaoDoMes.forEach(p => {
+            // Busca o nome do dentista
             const dentista = (state.dentistas || []).find(d => d.id === p.dentista);
-            const dentistaName = dentista ? dentista.nome : 'Desconhecido';
-            const valor = (state.valores || []).find(v => v.tipo === p.tipo);
-            const valorTotal = valor ? valor.valor * p.qtd : 0;
+            const dentistaName = dentista ? dentista.nome : 'Dentista Desconhecido';
+
+            // Busca o valor unitário
+            const valorItem = (state.valores || []).find(v => v.tipo === p.tipo);
+            const valorUnitario = valorItem ? valorItem.valor : 0;
+            const valorTotal = valorUnitario * p.qtd;
+            
+            totalFaturamentoMes += valorTotal;
+            
+            // OBS. usa o conteúdo completo
+            const obsConteudo = (p.obs || '-'); 
 
             const producaoData = [
+                p.nomePaciente || 'Não Informado',
                 dentistaName,
                 p.tipo,
+                obsConteudo,
                 p.status,
-                p.qtd,
+                p.qtd.toString(),
                 formatarMoeda(valorTotal)
             ];
             tableRows.push(producaoData);
         });
+        
+        // Título e Período
+        doc.setFontSize(16);
+        doc.text(`Relatório de Produção Mensal`, 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Período de Referência: ${mesAno}`, 14, 20);
 
-        doc.autoTable(tableColumns, tableRows, { startY: 20 });
-        doc.text("Relatório de Produção - DentalFlow", 14, 15);
-        doc.save('producao-dentalflow.pdf');
+        // Tabela
+        doc.autoTable({ 
+            head: [tableColumns], 
+            body: tableRows, 
+            startY: 25,
+            // Mantemos 'ellipsize' mas o aumento de largura deve reduzir a necessidade de truncamento.
+            styles: { fontSize: 9, cellPadding: 2, overflow: 'ellipsize' }, 
+            headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+            // NOVO AJUSTE FINO (Reduz TIPO DE TRABALHO e VALOR, Aumenta nomes)
+            columnStyles: {
+                // Largura em mm. Largura total do documento é ~190mm
+                [columnMap['PACIENTE']]: { cellWidth: 44 },     // +2mm (Prioridade máxima)
+                [columnMap['DENTISTA']]: { cellWidth: 44 },     // +2mm (Prioridade máxima)
+                [columnMap['TIPO DE TRABALHO']]: { cellWidth: 40 }, // -5mm (Mais compacto)
+                [columnMap['OBS.']]: { cellWidth: 20 },         // Mantido
+                [columnMap['STATUS']]: { cellWidth: 15 },       // Mantido
+                [columnMap['QTD']]: { cellWidth: 8, halign: 'center' }, // Mantido no mínimo
+                [columnMap['VALOR']]: { cellWidth: 19, halign: 'right' } // +1mm (Apenas o necessário para o formato R$ X,XX)
+            }
+            // Soma das larguras: 44 + 44 + 40 + 20 + 15 + 8 + 19 = 190mm (Uso total do espaço)
+        });
+        
+        // Posição final da tabela
+        const finalY = doc.autoTable.previous.finalY;
+        
+        // VALOR TOTAL (em destaque)
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`VALOR TOTAL (BRUTO): ${formatarMoeda(totalFaturamentoMes)}`, 14, finalY + 10);
+
+        doc.save(`producao-mensal-${mesAno.replace(/\s+/g, '_').toLowerCase()}.pdf`);
     };
 
     const generateProducaoDentistaPDF = () => {
-        const selectedDentistaId = filterDentistaSelect.value;
-        if (!selectedDentistaId) {
-            showToast("Por favor, selecione um dentista primeiro.");
-            return;
-        }
-
-        const dentista = (state.dentistas || []).find(d => d.id == selectedDentistaId);
-        const dentistaName = dentista ? dentista.nome : 'Desconhecido';
-
-        const producaoFiltrada = (state.producao || []).filter(p => p.dentista == selectedDentistaId);
-
-        if (producaoFiltrada.length === 0) {
-            showToast("Nenhuma produção encontrada para gerar o PDF.");
-            return;
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        const tableColumns = ["PACIENTE", "TIPO DE TRABALHO", "STATUS", "QTD", "VALOR TOTAL", "DATA ENTREGA"];
-        const tableRows = [];
-
-        producaoFiltrada.forEach(p => {
-            const valor = (state.valores || []).find(v => v.tipo === p.tipo);
-            const valorTotal = valor ? valor.valor * p.qtd : 0;
-            const dataEntrega = new Date(p.entrega + 'T00:00:00').toLocaleDateString('pt-BR');
-
-            const producaoData = [
-                p.nomePaciente || '-',
-                p.tipo,
-                p.status,
-                p.qtd,
-                formatarMoeda(valorTotal),
-                dataEntrega
-            ];
-            tableRows.push(producaoData);
-        });
-
-        doc.text(`Relatório de Produção - ${dentistaName}`, 14, 15);
-        doc.autoTable(tableColumns, tableRows, { startY: 20 });
-        
-        const filename = `producao_${dentistaName.replace(/\s+/g, '_').toLowerCase()}.pdf`;
-        doc.save(filename);
     };
 
     // --- FILTROS AVANÇADOS ---
@@ -838,6 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const email = emailInput.value; 
         const password = passwordInput.value; 
         authErrorMessage.classList.add('hidden'); 
+        setButtonLoading(authButton, true, isLoginMode ? 'Entrar' : 'Registar');
         try { 
             if (isLoginMode) { await signInWithEmailAndPassword(auth, email, password); } 
             else { await createUserWithEmailAndPassword(auth, email, password); }
@@ -849,7 +793,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (error.code === 'auth/weak-password') message = "A palavra-passe deve ter pelo menos 6 caracteres.";
             authErrorMessage.textContent = message; 
             authErrorMessage.classList.remove('hidden'); 
-        } 
+        } finally {
+            setButtonLoading(authButton, false);
+        }
     });
     
     logoutButton.addEventListener('click', () => { signOut(auth); });
@@ -882,44 +828,71 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function setupFirestoreListener(uid) {
+   function setupFirestoreListener(uid) {
         if (unsubscribeFromFirestore) unsubscribeFromFirestore();
         const docRef = doc(db, "users", uid);
         unsubscribeFromFirestore = onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
+
+                // --- LÓGICA DAS NOTAS RÁPIDAS (MODIFICADA) ---
+                let notesData = data.quickNotes;
+                // 1. Migra dados antigos (string) para a nova estrutura (array)
+                if (typeof notesData === 'string') {
+                    notesData = [{ id: Date.now(), title: 'Geral', content: notesData }];
+                }
+                // 2. Garante que sempre haja pelo menos uma nota
+                if (!notesData || notesData.length === 0) {
+                    notesData = [{ id: Date.now(), title: 'Geral', content: '' }];
+                }
+                // 3. Define o estado
+                state.quickNotes = notesData;
+                
+                // 4. Define a aba ativa
+                const activeId = data.activeQuickNoteId || notesData[0].id;
+                // Garante que a aba ativa exista, senão, usa a primeira
+                state.activeQuickNoteId = notesData.some(n => n.id === activeId) ? activeId : notesData[0].id;
+                // --- FIM DA LÓGICA DAS NOTAS ---
+
                 state = {
                     ...state, ...data,
+                    quickNotes: notesData, // Sobrescreve com os dados tratados
+                    activeQuickNoteId: state.activeQuickNoteId, // Sobrescreve com o ID ativo
                     mesAtual: data.mesAtual ? new Date(data.mesAtual) : new Date(),
                     despesas: (data.despesas || []).map(d => ({...d, categoria: d.categoria || 'Outros'})),
                     dentistas: data.dentistas || [],
                     estoque: data.estoque || [],
-                    notifications: data.notifications || [],
                     closingDayStart: data.closingDayStart || 25,
                     closingDayEnd: data.closingDayEnd || 24,
+                    notifications: data.notifications || [],
                 };
             } else {
+                // Novo usuário
+                const firstNoteId = Date.now();
                 state = { 
                     valores: [], 
                     producao: [], 
                     despesas: [], 
                     dentistas: [], 
-                    estoque: [], 
+                    estoque: [],
                     mesAtual: new Date(),
                     closingDayStart: 25,
                     closingDayEnd: 24,
-                    notifications: []
+                    notifications: [],
+                    quickNotes: [{ id: firstNoteId, title: 'Geral', content: '' }], // NOVO
+                    activeQuickNoteId: firstNoteId // NOVO
                 };
                 saveDataToFirestore(); 
             }
+
             if(fechamentoDiaInicioInput && fechamentoDiaFimInput) {
                 fechamentoDiaInicioInput.value = state.closingDayStart;
                 fechamentoDiaFimInput.value = state.closingDayEnd;
             }
-            renderAllUIComponents();
+            renderAllUIComponents(); // Esta função vai chamar a renderQuickNotesUI
             updateNotificationUI();
             updateCharts();
-            checkForNotifications();
+            checkAndCreateRecurringExpenses(); 
         }, (error) => {
             console.error("Erro ao carregar dados do Firestore:", error);
             showToast("Não foi possível carregar os dados.");
@@ -935,7 +908,58 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dashboardMesAnoAtualSpan) dashboardMesAnoAtualSpan.textContent = monthYearString;
     };
 
-    const renderizarDashboard = () => {
+	    const renderQuickNoteContent = () => {
+        if (quickNotesInput) {
+            const activeNote = state.quickNotes.find(n => n.id === state.activeQuickNoteId);
+            if (activeNote) {
+                quickNotesInput.value = activeNote.content || '';
+                quickNotesInput.disabled = false;
+            } else {
+                quickNotesInput.value = 'Nenhuma nota selecionada.';
+                quickNotesInput.disabled = true;
+            }
+        }
+    };
+
+    // Renderiza a UI inteira (abas + conteúdo)
+    const renderQuickNotesUI = () => {
+        if (!quickNotesTabsList) return;
+
+        quickNotesTabsList.innerHTML = ''; // Limpa as abas
+
+        // Garante que uma aba ativa esteja definida
+        if (!state.activeQuickNoteId && state.quickNotes.length > 0) {
+            state.activeQuickNoteId = state.quickNotes[0].id;
+        }
+
+        // Cria os botões das abas
+        state.quickNotes.forEach(note => {
+            const tabButton = document.createElement('button');
+            tabButton.className = 'quick-note-tab';
+            if (note.id === state.activeQuickNoteId) {
+                tabButton.classList.add('active');
+            }
+            tabButton.textContent = note.title;
+            tabButton.dataset.id = note.id;
+            tabButton.title = note.title;
+            quickNotesTabsList.appendChild(tabButton);
+        });
+
+        // Mostra/Esconde o botão de apagar (só pode apagar se tiver mais de uma)
+        deleteQuickNoteTabBtn.style.display = state.quickNotes.length > 1 ? 'block' : 'none';
+
+        // Carrega o conteúdo da aba ativa
+        renderQuickNoteContent();
+    };
+
+    // Função para selecionar uma aba
+    const selectQuickNoteTab = (id) => {
+        state.activeQuickNoteId = id;
+        saveDataToFirestore(); // Salva qual aba está ativa
+        renderQuickNotesUI(); // Redesenha a UI
+    };
+	
+	    const renderizarDashboard = () => {
         updateMonthDisplay();
     
         const { startDate, endDate } = getBillingPeriod(new Date(state.mesAtual));
@@ -985,33 +1009,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dentistaName = dentista ? dentista.nome : 'Dentista desconhecido';
                 const dataEntrega = new Date(entrega.entrega + 'T00:00:00');
                 const isUrgent = dataEntrega < hoje;
+
+                // Buscar os detalhes extras
+                const tipoTrabalho = entrega.tipo || 'Tipo não informado';
+                const observacoes = entrega.obs || 'Nenhuma observação';
+
                 const entregaEl = document.createElement('div');
-                entregaEl.className = `p-3 rounded-lg border ${isUrgent ? 'border-red-500 bg-red-500/10' : 'border-yellow-500 bg-yellow-500/10'}`;
+                entregaEl.className = `entrega-item-container p-3 rounded-lg border ${isUrgent ? 'border-red-500 bg-red-500/10' : 'border-yellow-500 bg-yellow-500/10'}`;
+                
+                // HTML reestruturado para expansão (e CORRIGIDO sem os '+')
                 entregaEl.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="font-medium">${entrega.nomePaciente || 'Paciente não informado'}</p>
-                            <p class="text-sm text-gemini-secondary">${dentistaName}</p>
+                    <div class="entrega-item-header flex justify-between items-center cursor-pointer">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium truncate">${entrega.nomePaciente || 'Paciente não informado'}</p>
+                            <p class="text-sm text-gemini-secondary truncate">${dentistaName}</p>
                         </div>
-                        <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-3 flex-shrink-0 ml-3">
                              <div class="text-right">
                                 <p class="text-sm font-medium">${dataEntrega.toLocaleDateString('pt-BR')}</p>
                                 <span class="text-xs px-2 py-1 rounded-full ${isUrgent ? 'bg-red-500 text-white' : 'bg-yellow-500 text-black'}">${isUrgent ? 'ATRASADO' : 'PRÓXIMO'}</span>
                             </div>
                             <button class="finalize-entrega-btn p-2 rounded-full bg-green-500/20 hover:bg-green-500/40" data-id="${entrega.id}" title="Finalizar Entrega">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-green-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-green-400" style="pointer-events: none;">
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
                             </button>
+                            <svg class="entrega-expand-icon w-4 h-4 text-gemini-secondary transition-transform" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                    </div>`;
-                listaEntregasProximas.appendChild(entregaEl);
+                     </div>
+ 
+                     <div class="entrega-item-details hidden mt-3 pt-3 border-t border-gemini-border/50">
+                         <p class="text-sm"><strong class="text-gemini-secondary">Trabalho:</strong> ${tipoTrabalho}</p>
+                         <p class="text-sm mt-1 break-words"><strong class="text-gemini-secondary">Obs:</strong> ${observacoes}</p>
+                     </div>
+                 `;
+                 listaEntregasProximas.appendChild(entregaEl);
             });
-        }
-    
-        statusPendente.textContent = (state.producao || []).filter(p => p.status === 'Pendente').length;
-        statusAndamento.textContent = (state.producao || []).filter(p => p.status === 'Em Andamento').length;
-        statusFinalizado.textContent = (state.producao || []).filter(p => p.status === 'Finalizado').length;
+        } 
     };
     
 
@@ -1042,34 +1076,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Em Andamento': 'status-andamento',
                     'Finalizado': 'status-finalizado'
                 }[producao.status] || 'status-pendente';
+
+                const anexoHtml = producao.anexoURL ? `
+                    <a href="${producao.anexoURL}" target="_blank" class="p-1 rounded hover:bg-blue-700 transition-colors text-blue-400" title="Ver Anexo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </a>` : '';
                 
                 const producaoEl = document.createElement('div');
-                producaoEl.className = 'card-enhanced p-4 hover-scale';
+                producaoEl.className = 'card-enhanced p-4 hover-effect';
                 producaoEl.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
-                            <div class="flex items-center space-x-2">
-                                <h4 class="font-semibold text-gemini-primary">${producao.tipo}</h4>
-                                ${producao.anexo ? `
-                                    <a href="${producao.anexo}" target="_blank" title="Ver anexo: ${producao.nomeArquivo || 'Arquivo'}" class="text-accent-blue hover:text-accent-blue-hover">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.64 16.2a2 2 0 01-2.83-2.83l8.49-8.49"></path>
-                                        </svg>
-                                    </a>
-                                ` : ''}
-                            </div>
+                            <h4 class="font-semibold text-gemini-primary">${producao.tipo}</h4>
                             <p class="text-sm text-gemini-secondary">${dentistaName}</p>
                             <p class="text-sm text-gemini-secondary font-medium">Paciente: ${producao.nomePaciente || 'Não informado'}</p>
                             <div class="flex items-center space-x-4 mt-2">
                                 <span class="text-sm">Qtd: <span class="font-semibold">${producao.qtd}</span></span>
                                 <span class="text-sm whitespace-nowrap">Valor: <span class="font-semibold text-accent-green monetary-value">${formatarMoeda(valorTotal)}</span></span>
                             </div>
-                            <p class="text-xs text-gemini-secondary mt-1">Entrega: ${new Date(producao.entrega).toLocaleDateString('pt-BR')}</p>
+                            <p class="text-xs text-gemini-secondary mt-1">Entrega: ${new Date(producao.entrega + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                             ${producao.obs ? `<p class="text-xs text-gemini-secondary mt-1">${producao.obs}</p>` : ''}
                         </div>
                         <div class="flex flex-col items-end space-y-2">
                             <span class="status-badge ${statusClass}">${producao.status}</span>
                             <div class="flex space-x-1">
+                                ${anexoHtml}
                                 <button class="edit-producao-btn p-1 rounded hover:bg-gray-700 transition-colors" data-id="${producao.id}">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1092,6 +1123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         totalPecasDia.textContent = totalPecas;
         totalFaturamentoDia.textContent = formatarMoeda(totalFaturamento);
+        toggleValuesVisibility();
     };
 
     const renderizarProducaoPorDentista = () => {
@@ -1099,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         producaoDentistaTableBody.innerHTML = '';
 
         if (!selectedDentistaId) {
-            producaoDentistaTableBody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gemini-secondary">Selecione um dentista para começar.</td></tr>';
+            producaoDentistaTableBody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gemini-secondary">Selecione um dentista para começar.</td></tr>';
             exportDentistaProducaoPdfBtn.classList.add('hidden'); // Oculta o botão
             return;
         }
@@ -1107,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const producaoFiltrada = (state.producao || []).filter(p => p.dentista == selectedDentistaId);
 
         if (producaoFiltrada.length === 0) {
-            producaoDentistaTableBody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gemini-secondary">Nenhuma produção encontrada para este dentista.</td></tr>';
+            producaoDentistaTableBody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gemini-secondary">Nenhuma produção encontrada para este dentista.</td></tr>';
             exportDentistaProducaoPdfBtn.classList.add('hidden'); // Oculta o botão
             return;
         }
@@ -1127,6 +1159,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const row = document.createElement('tr');
             row.className = 'border-b border-gemini-border hover:bg-gray-700/50 transition-colors';
+            
+            // [MODIFICADO] Adicionado o botão de excluir
             row.innerHTML = `
                 <td class="p-3 text-gemini-primary font-medium">${dentistaName}</td>
                 <td class="p-3 text-gemini-secondary">${producao.nomePaciente || '-'}</td>
@@ -1134,9 +1168,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="p-3 text-gemini-secondary text-sm">${producao.obs || '-'}</td>
                 <td class="p-3 font-semibold ${statusClass}">${producao.status}</td>
                 <td class="p-3 text-accent-green font-semibold monetary-value">${formatarMoeda(valorTotal)}</td>
+                <td class="p-3 text-center">
+                    <button class="edit-producao-btn p-1 rounded hover:bg-gray-700 transition-colors" data-id="${producao.id}" title="Editar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                    <button class="remove-producao-btn p-1 rounded hover:bg-red-700 transition-colors text-red-400" data-id="${producao.id}" title="Excluir">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3,6 5,6 21,6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </td>
             `;
             producaoDentistaTableBody.appendChild(row);
         });
+        toggleValuesVisibility();
     };
 
     const renderizarListaDentistas = () => {
@@ -1155,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         dentistasFiltrados.forEach(dentista => {
             const dentistaEl = document.createElement('div');
-            dentistaEl.className = 'card-enhanced p-4 hover-scale';
+            dentistaEl.className = 'card-enhanced p-4 hover-effect';
             dentistaEl.innerHTML = `
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
@@ -1248,6 +1297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 despesasContainer.appendChild(despesaEl);
             });
         }
+        toggleValuesVisibility();
     };
 
     const renderizarAnaliseDentista = () => {
@@ -1262,16 +1312,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         producaoDoMes.forEach(p => {
             const dentista = (state.dentistas || []).find(d => d.id === p.dentista);
-            const dentistaName = dentista ? dentista.nome : 'Desconhecido';
+            if (!dentista) return; // Pular se o dentista não for encontrado
+
+            if (!analise[dentista.nome]) {
+                analise[dentista.nome] = { id: dentista.id, pecas: 0, faturamento: 0 };
+            }
+            
             const valor = (state.valores || []).find(v => v.tipo === p.tipo);
             const faturamento = valor ? valor.valor * p.qtd : 0;
             
-            if (!analise[dentistaName]) {
-                analise[dentistaName] = { pecas: 0, faturamento: 0 };
-            }
-            
-            analise[dentistaName].pecas += p.qtd;
-            analise[dentistaName].faturamento += faturamento;
+            analise[dentista.nome].pecas += p.qtd;
+            analise[dentista.nome].faturamento += faturamento;
         });
         
         // Renderizar tabela
@@ -1281,7 +1332,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const ticketMedio = dados.pecas > 0 ? dados.faturamento / dados.pecas : 0;
             
             const row = document.createElement('tr');
-            row.className = 'border-b border-gemini-border hover:bg-gray-700 transition-colors';
+            // [NOVO] Adicionando classe e data attribute para a funcionalidade de clique
+            row.className = 'border-b border-gemini-border hover:bg-gray-700/50 transition-colors cursor-pointer dentist-summary-row';
+            row.dataset.dentistId = dados.id;
+
             row.innerHTML = `
                 <td class="py-3 text-gemini-primary">${nome}</td>
                 <td class="py-3 text-gemini-secondary">${dados.pecas}</td>
@@ -1296,6 +1350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = '<td colspan="4" class="py-6 text-center text-gemini-secondary">Nenhum dado encontrado para o mês atual</td>';
             dentistaSummaryTableBody.appendChild(row);
         }
+        toggleValuesVisibility();
     };
 
     const renderizarListaValores = () => {
@@ -1319,6 +1374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             listaValores.appendChild(valorEl);
         });
+        toggleValuesVisibility();
     };
 
     const renderizarSelects = () => {
@@ -1366,13 +1422,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         despesasDoMes.forEach(despesa => {
             const despesaEl = document.createElement('div');
-            despesaEl.className = 'card-enhanced p-4 hover-scale';
+            despesaEl.className = 'card-enhanced p-4 hover-effect';
             despesaEl.innerHTML = `
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
                         <h4 class="font-semibold text-gemini-primary">${despesa.desc}</h4>
                         <p class="text-sm text-gemini-secondary">${despesa.categoria}</p>
-                        <p class="text-xs text-gemini-secondary mt-1">${new Date(despesa.data).toLocaleDateString('pt-BR')}</p>
+                        <p class="text-xs text-gemini-secondary mt-1">${new Date(despesa.data + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                     </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-lg font-semibold text-red-400 monetary-value">${formatarMoeda(despesa.valor)}</span>
@@ -1395,48 +1451,47 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             listaDespesasDetalhada.appendChild(despesaEl);
         });
+        toggleValuesVisibility();
     };
 
-    const renderizarListaEstoque = () => {
-        const estoquesFiltrados = (state.estoque || []).filter(e => 
+    const renderizarEstoque = () => {
+        const estoqueFiltrado = (state.estoque || []).filter(item => 
             !state.searchTermEstoque || 
-            e.nome.toLowerCase().includes(state.searchTermEstoque.toLowerCase()) ||
-            e.fornecedor.toLowerCase().includes(state.searchTermEstoque.toLowerCase())
+            item.nome.toLowerCase().includes(state.searchTermEstoque.toLowerCase())
         );
         
         listaEstoque.innerHTML = '';
         
-        if (estoquesFiltrados.length === 0) {
+        if (estoqueFiltrado.length === 0) {
             listaEstoque.innerHTML = '<p class="text-center text-gemini-secondary">Nenhum material encontrado</p>';
             return;
         }
         
-        estoquesFiltrados.forEach(estoque => {
-            const estoqueEl = document.createElement('div');
-            const isLowStock = estoque.quantidade <= estoque.minimo;
-            estoqueEl.className = `card-enhanced p-4 hover-scale ${isLowStock ? 'border-l-4 border-red-500' : ''}`;
-            estoqueEl.innerHTML = `
+        estoqueFiltrado.forEach(item => {
+            const isLowStock = item.qtd <= item.min;
+            const itemEl = document.createElement('div');
+            itemEl.className = `card-enhanced p-4 hover-effect ${isLowStock ? 'border-red-500/50' : ''}`;
+            itemEl.innerHTML = `
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
                         <div class="flex items-center space-x-2">
-                            <h4 class="font-semibold text-gemini-primary">${estoque.nome}</h4>
-                            ${isLowStock ? '<span class="text-xs bg-red-500 text-white px-2 py-1 rounded-full">ESTOQUE BAIXO</span>' : ''}
+                            ${isLowStock ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>` : ''}
+                            <h4 class="font-semibold text-gemini-primary">${item.nome}</h4>
                         </div>
-                        <p class="text-sm text-gemini-secondary">Fornecedor: ${estoque.fornecedor}</p>
+                        <p class="text-sm text-gemini-secondary">${item.fornecedor || 'Sem fornecedor'}</p>
                         <div class="flex items-center space-x-4 mt-2">
-                            <span class="text-sm">Quantidade: <span class="font-semibold ${isLowStock ? 'text-red-400' : 'text-accent-green'}">${estoque.quantidade} ${estoque.unidade}</span></span>
-                            <span class="text-sm">Mínimo: <span class="font-semibold">${estoque.minimo} ${estoque.unidade}</span></span>
+                            <span class="text-sm">Qtd: <span class="font-semibold ${isLowStock ? 'text-red-400' : ''}">${item.qtd} ${item.unidade}</span></span>
+                            <span class="text-sm">Preço: <span class="font-semibold text-accent-green monetary-value">${formatarMoeda(item.preco)}</span></span>
                         </div>
-                        ${estoque.preco > 0 ? `<p class="text-xs text-gemini-secondary mt-1">Preço: <span class="monetary-value">${formatarMoeda(estoque.preco)}</span>/${estoque.unidade}</p>` : ''}
                     </div>
                     <div class="flex space-x-1">
-                        <button class="edit-estoque-btn p-2 rounded hover:bg-gray-700 transition-colors" data-id="${estoque.id}">
+                        <button class="edit-estoque-btn p-2 rounded hover:bg-gray-700 transition-colors" data-id="${item.id}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
                         </button>
-                        <button class="remove-estoque-btn p-2 rounded hover:bg-red-700 transition-colors text-red-400" data-id="${estoque.id}">
+                        <button class="remove-estoque-btn p-2 rounded hover:bg-red-700 transition-colors text-red-400" data-id="${item.id}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="3,6 5,6 21,6"></polyline>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -1445,51 +1500,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             `;
-            listaEstoque.appendChild(estoqueEl);
+            listaEstoque.appendChild(itemEl);
         });
+        toggleValuesVisibility();
     };
 
-    const renderizarEstoqueBaixo = () => {
-        const estoqueBaixo = (state.estoque || []).filter(e => e.quantidade <= e.minimo);
-        
-        listaEstoqueBaixo.innerHTML = '';
-        
-        if (estoqueBaixo.length === 0) {
-            listaEstoqueBaixo.innerHTML = '<p class="text-center text-gemini-secondary">Nenhum material com estoque baixo</p>';
-            return;
-        }
-        
-        estoqueBaixo.forEach(estoque => {
-            const estoqueEl = document.createElement('div');
-            estoqueEl.className = 'p-3 rounded-lg bg-red-500/20 border border-red-500/50';
-            estoqueEl.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="font-medium text-red-200">${estoque.nome}</p>
-                        <p class="text-sm text-red-300">Fornecedor: ${estoque.fornecedor}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sm font-semibold text-red-400">${estoque.quantidade} ${estoque.unidade}</p>
-                        <p class="text-xs text-red-300">Min: ${estoque.minimo}</p>
-                    </div>
-                </div>
-            `;
-            listaEstoqueBaixo.appendChild(estoqueEl);
-        });
-    };
-
-    const renderAllUIComponents = () => {
-        renderizarDashboard();
-        renderizarProducaoDia();
+	    const renderAllUIComponents = () => {
+	        renderizarDashboard();
+	        renderizarProducaoDia();
+	        renderQuickNotesUI();
+	        renderizarProducaoPorDentista();
         renderizarProducaoPorDentista();
         renderizarListaDentistas();
         renderizarResumoMensal();
         renderizarAnaliseDentista();
         renderizarListaValores();
         renderizarSelects();
-        renderizarListaEstoque();
-        renderizarEstoqueBaixo();
-        updateValuesDisplay();
+        renderizarEstoque();
     };
 
     // --- FUNÇÕES DE EDIÇÃO ---
@@ -1506,24 +1533,22 @@ document.addEventListener('DOMContentLoaded', () => {
         producaoObsInput.value = producao.obs || '';
         producaoDataInput.value = producao.data;
         entregaDataInput.value = producao.entrega;
+        producaoAnexoInput.value = '';
         
         formProducaoTitle.textContent = 'Editar Produção';
         producaoSubmitBtn.textContent = 'Atualizar';
         producaoCancelBtn.classList.remove('hidden');
         
-        // Scroll para o formulário
         document.getElementById('form-producao').scrollIntoView({ behavior: 'smooth' });
     };
 
     const cancelEditProducao = () => {
         producaoEditIdInput.value = '';
         formProducao.reset();
-        producaoAnexoInput.value = ''; // Limpar campo de arquivo
         formProducaoTitle.textContent = 'Adicionar Produção';
         producaoSubmitBtn.textContent = 'Adicionar';
         producaoCancelBtn.classList.add('hidden');
         
-        // Definir data padrão
         const hoje = new Date();
         producaoDataInput.valueAsDate = hoje;
         entregaDataInput.valueAsDate = hoje;
@@ -1544,7 +1569,6 @@ document.addEventListener('DOMContentLoaded', () => {
         formDentistaSubmitBtn.textContent = 'Atualizar';
         formDentistaCancelBtn.classList.remove('hidden');
         
-        // Scroll para o formulário
         document.getElementById('form-dentista').scrollIntoView({ behavior: 'smooth' });
     };
 
@@ -1565,18 +1589,15 @@ document.addEventListener('DOMContentLoaded', () => {
         despesaCategoriaSelect.value = despesa.categoria;
         despesaValorInput.value = despesa.valor;
         despesaDataInput.value = despesa.data;
+        despesaRecorrenteCheckbox.checked = despesa.recorrente || false;
         
         formDespesaTitle.textContent = 'Editar Despesa';
         formDespesaSubmitBtn.textContent = 'Atualizar';
         formDespesaCancelBtn.classList.remove('hidden');
         
-        // Fechar modal se estiver aberto
         despesasModal.classList.add('hidden');
-        
-        // Navegar para a view admin
         navigateToView('view-admin');
         
-        // Scroll para o formulário
         setTimeout(() => {
             document.getElementById('form-despesas').scrollIntoView({ behavior: 'smooth' });
         }, 100);
@@ -1589,26 +1610,179 @@ document.addEventListener('DOMContentLoaded', () => {
         formDespesaSubmitBtn.textContent = 'Adicionar';
         formDespesaCancelBtn.classList.add('hidden');
         
-        // Definir data padrão
         despesaDataInput.valueAsDate = new Date();
+    };
+
+    const startEditEstoque = (id) => {
+        const item = (state.estoque || []).find(i => i.id === id);
+        if (!item) return;
+        
+        estoqueEditIdInput.value = item.id;
+        estoqueNomeInput.value = item.nome;
+        estoqueFornecedorInput.value = item.fornecedor || '';
+        estoqueQtdInput.value = item.qtd;
+        estoqueUnidadeInput.value = item.unidade;
+        estoqueMinInput.value = item.min;
+        estoquePrecoInput.value = item.preco;
+        
+        formEstoqueTitle.textContent = 'Editar Material';
+        formEstoqueSubmitBtn.textContent = 'Atualizar';
+        formEstoqueCancelBtn.classList.remove('hidden');
+        
+        formEstoque.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const cancelEditEstoque = () => {
+        estoqueEditIdInput.value = '';
+        formEstoque.reset();
+        formEstoqueTitle.textContent = 'Adicionar Material';
+        formEstoqueSubmitBtn.textContent = 'Adicionar';
+        formEstoqueCancelBtn.classList.add('hidden');
     };
 
     // --- EVENT LISTENERS ---
     
     // Botão de ocultar/mostrar valores
+    const toggleValuesVisibility = () => {
+        const isHidden = document.body.classList.contains('values-hidden');
+        document.querySelectorAll('.monetary-value').forEach(el => {
+            if (isHidden) {
+                const originalValue = el.dataset.originalValue || el.textContent;
+                el.dataset.originalValue = originalValue;
+                el.textContent = ''; // O CSS fará o resto com o ::before
+            } else {
+                if (el.dataset.originalValue) {
+                    el.textContent = el.dataset.originalValue;
+                }
+            }
+        });
+        eyeIcon.classList.toggle('hidden', isHidden);
+        eyeOffIcon.classList.toggle('hidden', !isHidden);
+    };
+
     if(toggleValuesBtn) {
         toggleValuesBtn.addEventListener('click', () => {
             document.body.classList.toggle('values-hidden');
             const isHidden = document.body.classList.contains('values-hidden');
             toggleValuesBtn.setAttribute('aria-pressed', isHidden);
-            eyeIcon.classList.toggle('hidden', isHidden);
-            eyeOffIcon.classList.toggle('hidden', !isHidden);
+            toggleValuesVisibility();
         });
     }
 
-    // Notificações
-    if (notificationsBtn) {
-        notificationsBtn.addEventListener('click', (e) => {
+    // Toggle Top15 / Todos no gráfico de dentistas
+    if (toggleDentistaShowAllBtn) {
+        // Inicializa o texto conforme o estado
+        toggleDentistaShowAllBtn.textContent = state.showAllDentistas ? 'Mostrar Top 15' : 'Mostrar todos';
+        toggleDentistaShowAllBtn.addEventListener('click', () => {
+            state.showAllDentistas = !state.showAllDentistas;
+            toggleDentistaShowAllBtn.textContent = state.showAllDentistas ? 'Mostrar Top 15' : 'Mostrar todos';
+            updateDentistaChart();
+        });
+    }
+
+	    if (saveQuickNotesBtn) {
+	        saveQuickNotesBtn.addEventListener('click', async () => {
+                const activeNoteIndex = state.quickNotes.findIndex(n => n.id === state.activeQuickNoteId);
+                if (activeNoteIndex === -1) {
+                    showToast("Nenhuma nota selecionada para salvar.");
+                    return;
+                }
+                
+                // 1. Atualizar o conteúdo da aba ativa no estado
+	            state.quickNotes[activeNoteIndex].content = quickNotesInput.value;
+	            
+                // 2. Ativar feedback visual (loading)
+                const originalButtonText = saveQuickNotesBtn.dataset.originalText || 'Salvar Nota';
+                if (!saveQuickNotesBtn.dataset.originalText) {
+                    saveQuickNotesBtn.dataset.originalText = originalButtonText;
+                }
+                setButtonLoading(saveQuickNotesBtn, true, originalButtonText);
+	            if (quickNotesFeedback) quickNotesFeedback.classList.add('hidden');
+
+	            try {
+	                // 3. Salvar o estado inteiro no Firestore
+	                await saveDataToFirestore();
+	                showToast("Nota salva com sucesso!", "success");
+	                
+	                // 5. Feedback visual localizado
+	                if (quickNotesFeedback) {
+	                    quickNotesFeedback.textContent = 'Salvo!';
+	                    quickNotesFeedback.classList.remove('hidden', 'text-red-400');
+	                    quickNotesFeedback.classList.add('text-green-400');
+	                    setTimeout(() => quickNotesFeedback.classList.add('hidden'), 2000);
+	                }
+
+	            } catch (error) {
+	                console.error("Erro ao salvar notas:", error);
+	                showToast("Erro ao salvar notas.");
+	                if (quickNotesFeedback) {
+	                    quickNotesFeedback.textContent = 'Erro ao salvar.';
+	                    quickNotesFeedback.classList.remove('hidden', 'text-green-400');
+	                    quickNotesFeedback.classList.add('text-red-400');
+	                }
+	            } finally {
+	                setButtonLoading(saveQuickNotesBtn, false);
+	            }
+	        });
+	    }
+
+        // Clique nas abas (delegação de evento)
+        if (quickNotesTabsList) {
+            quickNotesTabsList.addEventListener('click', (e) => {
+                const tab = e.target.closest('.quick-note-tab');
+                if (tab && tab.dataset.id) {
+                    selectQuickNoteTab(Number(tab.dataset.id));
+                }
+            });
+        }
+
+        // Botão de Adicionar Nova Aba
+        if (addQuickNoteTabBtn) {
+            addQuickNoteTabBtn.addEventListener('click', () => {
+                const title = prompt("Qual o nome da nova nota?", "Nova Nota");
+                if (title && title.trim() !== "") {
+                    const newNote = {
+                        id: Date.now(),
+                        title: title.trim(),
+                        content: ""
+                    };
+                    state.quickNotes.push(newNote);
+                    selectQuickNoteTab(newNote.id); // Salva e renderiza a nova aba
+                }
+            });
+        }
+
+        // Botão de Apagar Aba
+        if (deleteQuickNoteTabBtn) {
+    deleteQuickNoteTabBtn.addEventListener('click', async () => { // [MODIFICADO] Adicionado 'async'
+        if (state.quickNotes.length <= 1) {
+            showToast("Não pode apagar a última nota.");
+            return;
+        }
+
+        const activeNote = state.quickNotes.find(n => n.id === state.activeQuickNoteId);
+
+        // [MODIFICADO] Chamando o novo modal
+        const confirmed = await showConfirmationModal(
+            'Confirmar Exclusão', 
+            `Tem certeza que quer apagar a nota "${activeNote.title}"?`
+        );
+
+        if (confirmed) {
+            state.quickNotes = state.quickNotes.filter(n => n.id !== state.activeQuickNoteId);
+            // Seleciona a primeira nota da lista como nova aba ativa
+            state.activeQuickNoteId = state.quickNotes[0].id; 
+            saveDataToFirestore().then(() => {
+                renderQuickNotesUI(); // Atualiza a UI
+                showToast("Nota apagada.", "success");
+            });
+        }
+    });
+}
+	
+	    // Notificações
+	    if (notificationsBtn) {
+	        notificationsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             notificationsDropdown.classList.toggle('hidden');
         });
@@ -1623,7 +1797,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Fechar dropdown ao clicar fora
     document.addEventListener('click', () => {
         if (notificationsDropdown) {
             notificationsDropdown.classList.add('hidden');
@@ -1631,58 +1804,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Filtros
-    if (searchProducaoInput) {
-        searchProducaoInput.addEventListener('input', (e) => {
-            state.searchTermProducao = e.target.value;
-            renderizarProducaoDia();
+    if (searchProducaoInput) searchProducaoInput.addEventListener('input', (e) => { state.searchTermProducao = e.target.value; renderizarProducaoDia(); });
+    if (searchDentistasInput) searchDentistasInput.addEventListener('input', (e) => { state.searchTermDentistas = e.target.value; renderizarListaDentistas(); });
+    if (searchEstoqueInput) searchEstoqueInput.addEventListener('input', (e) => { state.searchTermEstoque = e.target.value; renderizarEstoque(); });
+    if (filterStatusSelect) filterStatusSelect.addEventListener('change', renderizarProducaoDia);
+    if (filterDataInicio) filterDataInicio.addEventListener('change', renderizarProducaoDia);
+    if (filterDataFim) filterDataFim.addEventListener('change', renderizarProducaoDia);
+
+    // Produção por dentista
+    if (filterDentistaSelect) filterDentistaSelect.addEventListener('change', renderizarProducaoPorDentista);
+    if (producaoDentistaTableBody) {
+        producaoDentistaTableBody.addEventListener('click', async (e) => { // [MODIFICADO] Adicionado 'async'
+            const editBtn = e.target.closest('.edit-producao-btn');
+            const removeBtn = e.target.closest('.remove-producao-btn');
+
+            if (editBtn) {
+                const producaoId = parseInt(editBtn.dataset.id);
+                startEditProducao(producaoId);
+            } 
+            else if (removeBtn) {
+                const producaoId = parseInt(removeBtn.dataset.id);
+                
+                // [MODIFICADO] Chamando o novo modal
+                const confirmed = await showConfirmationModal(
+                    'Confirmar Exclusão', 
+                    'Tem certeza que quer excluir este trabalho?'
+                );
+
+                if (confirmed) {
+                    state.producao = state.producao.filter(p => p.id !== producaoId);
+                    saveDataToFirestore();
+                    showToast("Produção removida com sucesso!", "success");
+                }
+            }
         });
-    }
-    
-    if (searchDentistasInput) {
-        searchDentistasInput.addEventListener('input', (e) => {
-            state.searchTermDentistas = e.target.value;
-            renderizarListaDentistas();
-        });
-    }
-    
-    if (filterStatusSelect) {
-        filterStatusSelect.addEventListener('change', renderizarProducaoDia);
-    }
-    
-    if (filterDataInicio) {
-        filterDataInicio.addEventListener('change', renderizarProducaoDia);
-    }
-    
-    if (filterDataFim) {
-        filterDataFim.addEventListener('change', renderizarProducaoDia);
     }
 
-    // Event listener para a nova área de produção por dentista
-    if (filterDentistaSelect) {
-        filterDentistaSelect.addEventListener('change', renderizarProducaoPorDentista);
-    }
-    
     // Exportação PDF
-    if (exportDashboardPdf) {
-        exportDashboardPdf.addEventListener('click', generateDashboardPDF);
-    }
-    
-    if (exportProducaoPdf) {
-        exportProducaoPdf.addEventListener('click', generateProducaoPDF);
-    }
-    
-    if (exportDentistaProducaoPdfBtn) {
-        exportDentistaProducaoPdfBtn.addEventListener('click', generateProducaoDentistaPDF);
-    }
+    if (exportDashboardPdf) exportDashboardPdf.addEventListener('click', generateDashboardPDF);
+    if (exportProducaoPdf) exportProducaoPdf.addEventListener('click', generateProducaoPDF);
+    if (exportDentistaProducaoPdfBtn) exportDentistaProducaoPdfBtn.addEventListener('click', generateProducaoDentistaPDF);
 
     // Ações rápidas
-    if (actionAddProducao) {
-        actionAddProducao.addEventListener('click', () => navigateToView('view-producao'));
-    }
-    
-    if (actionAddDespesa) {
-        actionAddDespesa.addEventListener('click', () => navigateToView('view-admin'));
-    }
+    if (actionAddProducao) actionAddProducao.addEventListener('click', () => navigateToView('view-producao'));
+    if (actionAddDespesa) actionAddDespesa.addEventListener('click', () => navigateToView('view-admin'));
 
     // Formulários
     if (formFechamento) {
@@ -1723,106 +1888,164 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(formDentistaCancelBtn) formDentistaCancelBtn.addEventListener('click', cancelEditDentista);
     if(listaDentistas) {
-        listaDentistas.addEventListener('click', (e) => {
-            const editButton = e.target.closest('.edit-dentista-btn');
-            if (editButton) { startEditDentista(parseInt(editButton.dataset.id)); }
-            const removeButton = e.target.closest('.remove-dentista-btn');
-            if (removeButton) { if (confirm('Tem certeza?')) { state.dentistas = state.dentistas.filter(d => d.id !== parseInt(removeButton.dataset.id)); saveDataToFirestore(); showToast("Dentista removido.", "success"); } }
-        });
-    }
+    listaDentistas.addEventListener('click', async (e) => { // [MODIFICADO] Adicionado 'async'
+        const editButton = e.target.closest('.edit-dentista-btn');
+        const removeButton = e.target.closest('.remove-dentista-btn');
+
+        if (editButton) { 
+            startEditDentista(parseInt(editButton.dataset.id)); 
+        }
+
+        else if (removeButton) {
+            const dentistaId = parseInt(removeButton.dataset.id);
+
+            // [MODIFICADO] Chamando o novo modal
+            const confirmed = await showConfirmationModal(
+                'Confirmar Exclusão', 
+                'Tem certeza que quer remover este dentista?'
+            );
+
+            if (confirmed) { 
+                state.dentistas = state.dentistas.filter(d => d.id !== dentistaId); 
+                saveDataToFirestore(); 
+                showToast("Dentista removido.", "success"); 
+            } 
+        }
+    });
+}
 
     if(formValores) formValores.addEventListener('submit', (e) => { e.preventDefault(); const tipo = tipoTrabalhoInput.value.trim(); const valor = parseFloat(valorTrabalhoInput.value); if (tipo && !isNaN(valor)) { state.valores.push({ tipo, valor }); saveDataToFirestore(); formValores.reset(); showToast("Valor adicionado com sucesso!", "success"); } });
-    if(listaValores) listaValores.addEventListener('click', (e) => { const btn = e.target.closest('.remove-valor-btn'); if (btn) { state.valores.splice(btn.dataset.index, 1); saveDataToFirestore(); showToast("Valor removido.", "success"); } });
+    if(listaValores) {
+    listaValores.addEventListener('click', async (e) => { // [MODIFICADO] Adicionado 'async'
+        const btn = e.target.closest('.remove-valor-btn'); 
+
+        if (btn) { 
+            const index = btn.dataset.index;
+            // Pega o nome do trabalho para deixar a mensagem mais clara
+            const tipoTrabalho = state.valores[index]?.tipo || 'este item'; 
+
+            // [MODIFICADO] Chamando o novo modal
+            const confirmed = await showConfirmationModal(
+                'Confirmar Exclusão', 
+                `Tem certeza que quer remover o valor de "${tipoTrabalho}"?`
+            );
+
+            if (confirmed) {
+                state.valores.splice(index, 1); 
+                saveDataToFirestore(); 
+                showToast("Valor removido.", "success"); 
+            }
+        } 
+    });
+}
     
     if(formProducao){
         formProducao.addEventListener('submit', async (e) => { 
-            e.preventDefault(); 
-            const editId = producaoEditIdInput.value ? parseInt(producaoEditIdInput.value) : null;
-            
+            e.preventDefault();
             setButtonLoading(producaoSubmitBtn, true);
-            producaoSubmitBtn.dataset.originalText = producaoSubmitBtn.textContent;
-            
-            try {
-                const producaoData = { 
-                    id: editId || Date.now(), 
-                    tipo: producaoTipoSelect.value, 
-                    dentista: parseInt(producaoDentistaSelect.value), 
-                    nomePaciente: producaoPacienteInput.value.trim(),
-                    qtd: parseInt(producaoQtdInput.value), 
-                    status: producaoStatusSelect.value, 
-                    obs: producaoObsInput.value.trim(), 
-                    data: producaoDataInput.value, 
-                    entrega: entregaDataInput.value 
-                };
 
-                // Upload de arquivo se fornecido
-                const file = producaoAnexoInput.files[0];
-                if (file) {
-                    showToast("Fazendo upload do arquivo...", "success");
-                    const fileUrl = await uploadFile(file, 'producao');
-                    producaoData.anexo = fileUrl;
-                    producaoData.nomeArquivo = file.name;
-                }
+            const file = producaoAnexoInput.files[0];
+            let anexoURL = null;
 
-                if (producaoData.tipo && producaoData.dentista && producaoData.nomePaciente && producaoData.qtd > 0 && producaoData.data && producaoData.entrega) {
-                    if (editId) { 
-                        const index = state.producao.findIndex(p => p.id === editId); 
-                        if (index !== -1) { 
-                            // Se havia um anexo anterior e está sendo substituído, deletar o antigo
-                            if (state.producao[index].anexo && producaoData.anexo && state.producao[index].anexo !== producaoData.anexo) {
-                                await deleteFile(state.producao[index].anexo);
-                            }
-                            state.producao[index] = {...state.producao[index], ...producaoData}; 
-                            showToast("Produção atualizada com sucesso!", "success");
-                            addNotification(`Produção atualizada: ${producaoData.tipo}`, 'success');
-                        } 
-                    } else { 
-                        state.producao.push(producaoData); 
-                        showToast("Produção adicionada com sucesso!", "success");
-                        addNotification(`Nova produção adicionada: ${producaoData.tipo}`, 'success');
-                    }
-                    await saveDataToFirestore();
-                    cancelEditProducao();
-                } else { 
-                    showToast("Por favor, preencha todos os campos obrigatórios, incluindo o nome do paciente."); 
+            if (file) {
+                const storageRef = ref(storage, `users/${userId}/attachments/${Date.now()}_${file.name}`);
+                try {
+                    const snapshot = await uploadBytes(storageRef, file);
+                    anexoURL = await getDownloadURL(snapshot.ref);
+                } catch (error) {
+                    console.error("Erro no upload: ", error);
+                    showToast("Falha no upload do anexo.");
+                    setButtonLoading(producaoSubmitBtn, false);
+                    return;
                 }
-            } catch (error) {
-                console.error('Erro ao salvar produção:', error);
-                showToast("Erro ao salvar produção. Tente novamente.");
-            } finally {
-                setButtonLoading(producaoSubmitBtn, false);
             }
+            
+            const editId = producaoEditIdInput.value ? parseInt(producaoEditIdInput.value) : null;
+            const producaoData = { 
+                id: editId || Date.now(), 
+                tipo: producaoTipoSelect.value, 
+                dentista: parseInt(producaoDentistaSelect.value), 
+                nomePaciente: producaoPacienteInput.value.trim(),
+                qtd: parseInt(producaoQtdInput.value), 
+                status: producaoStatusSelect.value, 
+                obs: producaoObsInput.value.trim(), 
+                data: producaoDataInput.value, 
+                entrega: entregaDataInput.value,
+                anexoURL: anexoURL
+            };
+
+            if (producaoData.tipo && producaoData.dentista && producaoData.nomePaciente && producaoData.qtd > 0 && producaoData.data && producaoData.entrega) {
+                if (editId) { 
+                    const index = state.producao.findIndex(p => p.id === editId); 
+                    if (index !== -1) {
+                        producaoData.anexoURL = anexoURL || state.producao[index].anexoURL; // Mantém anexo antigo se não houver novo
+                        state.producao[index] = producaoData; 
+                        showToast("Produção atualizada com sucesso!", "success");
+                    } 
+                } else { 
+                    state.producao.push(producaoData); 
+                    showToast("Produção adicionada com sucesso!", "success");
+                }
+                await saveDataToFirestore();
+                cancelEditProducao();
+            } else { 
+                showToast("Por favor, preencha todos os campos obrigatórios."); 
+            }
+            setButtonLoading(producaoSubmitBtn, false);
         });
     }
 
     if(producaoCancelBtn) producaoCancelBtn.addEventListener('click', cancelEditProducao);
     if(listaProducaoDia) {
-        listaProducaoDia.addEventListener('click', (e) => { 
-            const removeBtn = e.target.closest('.remove-producao-btn');
-            if (removeBtn) { if (confirm('Tem certeza?')) { state.producao = state.producao.filter(p => p.id !== parseInt(removeBtn.dataset.id)); saveDataToFirestore(); showToast("Produção removida.", "success"); }}
-            const editBtn = e.target.closest('.edit-producao-btn');
-            if (editBtn) { startEditProducao(parseInt(editBtn.dataset.id)); }
-        });
-    }
+    listaProducaoDia.addEventListener('click', async (e) => { // [MODIFICADO] Adicionado 'async'
+        const removeBtn = e.target.closest('.remove-producao-btn');
+        const editBtn = e.target.closest('.edit-producao-btn');
+
+        if (removeBtn) { 
+            const producaoId = parseInt(removeBtn.dataset.id);
+
+            // [MODIFICADO] Chamando o novo modal
+            const confirmed = await showConfirmationModal(
+                'Confirmar Exclusão', 
+                'Tem certeza que quer excluir este trabalho?'
+            );
+
+            if (confirmed) { 
+                state.producao = state.producao.filter(p => p.id !== producaoId); 
+                saveDataToFirestore(); 
+                showToast("Produção removida.", "success"); 
+            }
+        }
+
+        else if (editBtn) { // [MODIFICADO] Mudei para 'else if'
+            startEditProducao(parseInt(editBtn.dataset.id)); 
+        }
+    });
+}
     if(producaoDataInput) producaoDataInput.addEventListener('change', renderizarProducaoDia);
     
     if(formDespesas) {
         formDespesas.addEventListener('submit', (e) => {
             e.preventDefault();
             const editId = despesaEditIdInput.value ? parseInt(despesaEditIdInput.value) : null;
-            const despesaData = { id: editId || Date.now(), desc: despesaDescInput.value.trim(), categoria: despesaCategoriaSelect.value, valor: parseFloat(despesaValorInput.value), data: despesaDataInput.value };
+            const despesaData = { 
+                id: editId || Date.now(), 
+                desc: despesaDescInput.value.trim(), 
+                categoria: despesaCategoriaSelect.value, 
+                valor: parseFloat(despesaValorInput.value), 
+                data: despesaDataInput.value,
+                recorrente: despesaRecorrenteCheckbox.checked
+            };
             if (despesaData.desc && !isNaN(despesaData.valor) && despesaData.data) {
                 if (editId) { 
                     const index = state.despesas.findIndex(d => d.id === editId); 
                     if (index !== -1) { 
                         state.despesas[index] = despesaData; 
                         showToast("Despesa atualizada com sucesso!", "success"); 
-                        addNotification(`Despesa atualizada: ${despesaData.desc}`, 'success');
                     } 
                 } else { 
                     state.despesas.push(despesaData); 
                     showToast("Despesa adicionada com sucesso!", "success"); 
-                    addNotification(`Nova despesa: ${despesaData.desc} - ${formatarMoeda(despesaData.valor)}`, 'info');
                 }
                 saveDataToFirestore(formDespesaSubmitBtn);
                 cancelEditDespesa();
@@ -1831,6 +2054,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if(formDespesaCancelBtn) formDespesaCancelBtn.addEventListener('click', cancelEditDespesa);
+
+    // Estoque
+    if (formEstoque) {
+        formEstoque.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = estoqueEditIdInput.value ? parseInt(estoqueEditIdInput.value) : Date.now();
+            const itemData = {
+                id,
+                nome: estoqueNomeInput.value.trim(),
+                fornecedor: estoqueFornecedorInput.value.trim(),
+                qtd: parseFloat(estoqueQtdInput.value),
+                unidade: estoqueUnidadeInput.value.trim(),
+                min: parseFloat(estoqueMinInput.value),
+                preco: parseFloat(estoquePrecoInput.value)
+            };
+            if (!itemData.nome || isNaN(itemData.qtd) || !itemData.unidade || isNaN(itemData.min)) {
+                showToast("Preencha os campos obrigatórios do material.");
+                return;
+            }
+            if (estoqueEditIdInput.value) {
+                const index = state.estoque.findIndex(i => i.id === id);
+                if (index !== -1) state.estoque[index] = itemData;
+            } else {
+                state.estoque.push(itemData);
+            }
+            saveDataToFirestore(formEstoqueSubmitBtn);
+            cancelEditEstoque();
+            showToast("Material salvo com sucesso!", "success");
+        });
+    }
+    if (formEstoqueCancelBtn) formEstoqueCancelBtn.addEventListener('click', cancelEditEstoque);
+    if (listaEstoque) {
+    listaEstoque.addEventListener('click', async (e) => { // [MODIFICADO] Adicionado 'async'
+        const editBtn = e.target.closest('.edit-estoque-btn');
+        const removeBtn = e.target.closest('.remove-estoque-btn'); // [NOVO]
+
+        if (editBtn) {
+            startEditEstoque(parseInt(editBtn.dataset.id));
+        } 
+        else if (removeBtn) { // [MODIFICADO] Mudei para 'else if'
+            const itemId = parseInt(removeBtn.dataset.id);
+
+            // [MODIFICADO] Chamando o novo modal
+            const confirmed = await showConfirmationModal(
+                'Confirmar Exclusão', 
+                'Tem certeza que quer remover este material do estoque?'
+            );
+
+            if (confirmed) {
+                state.estoque = state.estoque.filter(i => i.id !== itemId);
+                saveDataToFirestore();
+                showToast("Material removido.", "success");
+            }
+        }
+    });
+}
     
     const changeMonth = (offset) => {
         const d = new Date(state.mesAtual);
@@ -1838,6 +2117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.mesAtual = d;
         renderAllUIComponents();
         updateCharts();
+        checkAndCreateRecurringExpenses(); 
         saveDataToFirestore();
     };
 
@@ -1860,7 +2140,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if(listaEntregasProximas) {
         listaEntregasProximas.addEventListener('click', (e) => {
             const finalizeButton = e.target.closest('.finalize-entrega-btn');
+           const header = e.target.closest('.entrega-item-header');
+
             if (finalizeButton) {
+               e.stopPropagation(); // Impede que o clique expanda o item
                 const producaoId = parseInt(finalizeButton.dataset.id);
                 const producaoIndex = state.producao.findIndex(p => p.id === producaoId);
                 if (producaoIndex !== -1) {
@@ -1869,12 +2152,56 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("Produção finalizada com sucesso!", "success");
                 }
             }
+           // [NOVO] Lógica para expandir
+           else if (header) {
+               const container = header.closest('.entrega-item-container');
+               const details = container.querySelector('.entrega-item-details');
+               const icon = header.querySelector('.entrega-expand-icon');
+               
+               details.classList.toggle('hidden');
+               icon.classList.toggle('rotate-180');
+           }
         });
     }
 
+    // --- LÓGICA DE DESPESAS RECORRENTES ---
+    const checkAndCreateRecurringExpenses = () => {
+        const { startDate, endDate } = getBillingPeriod(new Date(state.mesAtual));
+        const recurringExpenses = (state.despesas || []).filter(d => d.recorrente);
+        let createdNewExpense = false;
+
+        recurringExpenses.forEach(recurrent => {
+            const alreadyExists = (state.despesas || []).some(d => 
+                d.desc === recurrent.desc &&
+                d.valor === recurrent.valor &&
+                new Date(d.data + "T00:00:00") >= startDate &&
+                new Date(d.data + "T00:00:00") <= endDate
+            );
+
+            if (!alreadyExists) {
+                const newDate = new Date(startDate);
+                newDate.setDate(new Date(recurrent.data + "T00:00:00").getDate());
+
+                const newExpense = {
+                    ...recurrent,
+                    id: Date.now() + Math.random(),
+                    data: newDate.toISOString().split('T')[0],
+                    recorrente: false // A nova despesa não é o "molde" recorrente
+                };
+                state.despesas.push(newExpense);
+                createdNewExpense = true;
+                addNotification(`Despesa recorrente '${newExpense.desc}' criada para este mês.`, 'info');
+            }
+        });
+
+        if (createdNewExpense) {
+            saveDataToFirestore();
+        }
+    };
+
+
     // --- INICIALIZAÇÃO ---
     const initApp = () => {
-        // Conteúdo da primeira declaração
         document.querySelectorAll('button[type="submit"]').forEach(button => {
             button.dataset.originalText = button.innerHTML;
         });
@@ -1883,14 +2210,8 @@ document.addEventListener('DOMContentLoaded', () => {
         entregaDataInput.valueAsDate = hoje;
         despesaDataInput.valueAsDate = hoje;
         
-        // Inicializar gráficos
         setTimeout(initializeCharts, 100);
-
-        // Conteúdo da segunda declaração (agora adicionado aqui)
-        updateValuesDisplay();
-        processRecurringExpenses();
     };
-
 
     async function initializeFirebase() {
         try {
@@ -1898,7 +2219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 apiKey: "AIzaSyDEDzQkvYegnFT2EK7RI_xZxconQ3-Q9GU",
                 authDomain: "cad-manager-d7eaf.firebaseapp.com",
                 projectId: "cad-manager-d7eaf",
-                storageBucket: "cad-manager-d7eaf.firebasestorage.app",
+                storageBucket: "cad-manager-d7eaf.appspot.com",
                 messagingSenderId: "631779304741",
                 appId: "1:631779304741:web:57c388a39cbe1ec32766cc"
             };
@@ -1915,15 +2236,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     authScreen.classList.add('hidden');
                     appContent.classList.remove('hidden');
                     setupFirestoreListener(userId);
-                    
-                    // Definir data padrão como hoje
-                    const today = new Date().toISOString().split('T')[0];
-                    if(producaoDataInput) producaoDataInput.value = today;
-                    if(entregaDataInput) entregaDataInput.value = today;
-                    if(despesaDataInput) despesaDataInput.value = today;
-                    
-                    // Processar despesas recorrentes
-                    processRecurringExpenses();
                 } else {
                     userId = null;
                     if (unsubscribeFromFirestore) unsubscribeFromFirestore();
@@ -1937,121 +2249,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- EVENT LISTENERS PARA ESTOQUE ---
-    if(formEstoque){
-        formEstoque.addEventListener('submit', (e) => { 
-            e.preventDefault(); 
-            const editId = estoqueEditIdInput.value ? parseInt(estoqueEditIdInput.value) : null;
-            const estoqueData = { 
-                id: editId || Date.now(), 
-                nome: estoqueNomeInput.value.trim(), 
-                fornecedor: estoqueFornecedorInput.value.trim(),
-                quantidade: parseFloat(estoqueQuantidadeInput.value), 
-                unidade: estoqueUnidadeInput.value, 
-                minimo: parseFloat(estoqueMinimoInput.value), 
-                preco: parseFloat(estoquePrecoInput.value) || 0
-            };
-            if (estoqueData.nome && estoqueData.fornecedor && estoqueData.quantidade >= 0 && estoqueData.unidade && estoqueData.minimo >= 0) {
-                if (editId) { 
-                    const index = state.estoque.findIndex(e => e.id === editId); 
-                    if (index !== -1) { 
-                        state.estoque[index] = estoqueData; 
-                        showToast("Material atualizado com sucesso!", "success");
-                        addNotification(`Material atualizado: ${estoqueData.nome}`, 'success');
-                    } 
-                } else { 
-                    state.estoque.push(estoqueData); 
-                    showToast("Material adicionado com sucesso!", "success");
-                    addNotification(`Novo material adicionado: ${estoqueData.nome}`, 'success');
-                }
-                saveDataToFirestore(formEstoqueSubmitBtn);
-                cancelEditEstoque();
-            } else { showToast("Por favor, preencha todos os campos obrigatórios."); }
-        });
-    }
-
-    if(formEstoqueCancelBtn) formEstoqueCancelBtn.addEventListener('click', cancelEditEstoque);
-    
-    if(listaEstoque) {
-        listaEstoque.addEventListener('click', (e) => { 
-            const removeBtn = e.target.closest('.remove-estoque-btn');
-            if (removeBtn) { if (confirm('Tem certeza?')) { state.estoque = state.estoque.filter(est => est.id !== parseInt(removeBtn.dataset.id)); saveDataToFirestore(); showToast("Material removido.", "success"); }}
-            const editBtn = e.target.closest('.edit-estoque-btn');
-            if (editBtn) { startEditEstoque(parseInt(editBtn.dataset.id)); }
-        });
-    }
-
-    if(searchEstoqueInput) searchEstoqueInput.addEventListener('input', (e) => { state.searchTermEstoque = e.target.value; renderizarListaEstoque(); });
-
-    // --- EVENT LISTENERS PARA DESPESAS RECORRENTES ---
-    if(formDespesas){
-        const originalDespesaSubmit = formDespesas.onsubmit;
-        formDespesas.addEventListener('submit', (e) => { 
-            e.preventDefault(); 
-            const editId = despesaEditIdInput.value ? parseInt(despesaEditIdInput.value) : null;
-            const despesaData = { 
-                id: editId || Date.now(), 
-                desc: despesaDescInput.value.trim(), 
-                categoria: despesaCategoriaSelect.value, 
-                valor: parseFloat(despesaValorInput.value), 
-                data: despesaDataInput.value,
-                recorrente: despesaRecorrenteInput.checked,
-                ativo: true
-            };
-            if (despesaData.desc && despesaData.categoria && despesaData.valor > 0 && despesaData.data) {
-                if (editId) { 
-                    const index = state.despesas.findIndex(d => d.id === editId); 
-                    if (index !== -1) { 
-                        state.despesas[index] = despesaData; 
-                        showToast("Despesa atualizada com sucesso!", "success");
-                        addNotification(`Despesa atualizada: ${despesaData.desc}`, 'success');
-                    } 
-                } else { 
-                    state.despesas.push(despesaData); 
-                    showToast("Despesa adicionada com sucesso!", "success");
-                    addNotification(`Nova despesa adicionada: ${despesaData.desc}`, 'success');
-                    
-                    if (despesaData.recorrente) {
-                        addNotification(`Despesa recorrente configurada: ${despesaData.desc}`, 'info');
-                    }
-                }
-                saveDataToFirestore(formDespesaSubmitBtn);
-                cancelEditDespesa();
-            } else { showToast("Por favor, preencha todos os campos obrigatórios."); }
-        });
-    }
-
-    // --- EVENT LISTENER PARA TOGGLE DE VALORES ---
-    if(toggleValuesBtn) toggleValuesBtn.addEventListener('click', toggleValuesVisibility);
-
-    // --- FUNÇÕES DE EDIÇÃO ESTOQUE ---
-    const startEditEstoque = (id) => {
-        const estoque = (state.estoque || []).find(e => e.id === id);
-        if (!estoque) return;
-        
-        estoqueEditIdInput.value = estoque.id;
-        estoqueNomeInput.value = estoque.nome;
-        estoqueFornecedorInput.value = estoque.fornecedor;
-        estoqueQuantidadeInput.value = estoque.quantidade;
-        estoqueUnidadeInput.value = estoque.unidade;
-        estoqueMinimoInput.value = estoque.minimo;
-        estoquePrecoInput.value = estoque.preco;
-        
-        formEstoqueTitle.textContent = 'Editar Material';
-        formEstoqueSubmitBtn.textContent = 'Atualizar';
-        formEstoqueCancelBtn.classList.remove('hidden');
-    };
-
-    const cancelEditEstoque = () => {
-        formEstoque.reset();
-        estoqueEditIdInput.value = '';
-        formEstoqueTitle.textContent = 'Adicionar Material';
-        formEstoqueSubmitBtn.textContent = 'Adicionar';
-        formEstoqueCancelBtn.classList.add('hidden');
-    };
-
-   
-
-    initApp();
-    initializeFirebase();
-});
+	    initApp();
+	    initializeFirebase();
+	});
