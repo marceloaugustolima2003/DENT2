@@ -146,6 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const listaEstoque = document.getElementById('lista-estoque');
     const searchEstoqueInput = document.getElementById('search-estoque-input');
 
+    // Work Type Details Modal
+    const workTypeDetailsModal = document.getElementById('work-type-details-modal');
+    const workTypeDetailsTitle = document.getElementById('work-type-details-title');
+    const workTypeDetailsList = document.getElementById('work-type-details-list');
+    const closeWorkTypeModalBtn = document.getElementById('close-work-type-modal-btn');
+    const closeWorkTypeModalFooterBtn = document.getElementById('close-work-type-modal-footer-btn');
 
     // Novos elementos para funcionalidades avançadas
     const notificationsBtn = document.getElementById('notifications-btn');
@@ -1536,6 +1542,58 @@ const generateProducaoPDF = () => {
         });
     };
 
+    const showWorkTypeDetails = (tipo, producaoDoMes) => {
+        // Filter by type
+        const filtered = producaoDoMes.filter(p => p.tipo === tipo);
+
+        // Sort by date desc
+        filtered.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+        workTypeDetailsTitle.textContent = `${t('summary_chart_types')}: ${tipo}`;
+        workTypeDetailsList.innerHTML = '';
+
+        if (filtered.length === 0) {
+            workTypeDetailsList.innerHTML = '<p class="text-center text-gemini-secondary">Nenhum registro encontrado.</p>';
+        } else {
+            filtered.forEach(p => {
+                const dentista = (state.dentistas || []).find(d => d.id === p.dentista);
+                const dentistaName = dentista ? dentista.nome : 'Desconhecido';
+                const dataFormatada = new Date(p.data + 'T00:00:00').toLocaleDateString('pt-BR');
+
+                // Calculate value if needed, or just show basic info
+                const valorDentista = dentista ? (dentista.valores || []).find(v => v.tipo === p.tipo) : null;
+                const valorGlobal = (state.valores || []).find(v => v.tipo === p.tipo);
+                const valorFinal = valorDentista || valorGlobal;
+                const valorTotal = valorFinal ? valorFinal.valor * p.qtd : 0;
+
+                const itemEl = document.createElement('div');
+                itemEl.className = 'card-enhanced p-3 border border-gemini-border';
+
+                itemEl.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-medium text-gemini-primary">${p.nomePaciente || 'Paciente não informado'}</p>
+                            <p class="text-sm text-gemini-secondary">${dentistaName}</p>
+                            <p class="text-xs text-gemini-secondary mt-1">Data: ${dataFormatada}</p>
+                        </div>
+                        <div class="text-right">
+                             <div class="font-bold text-accent-purple">${p.qtd} un.</div>
+                             <div class="text-sm text-accent-green monetary-value">${formatarMoeda(valorTotal)}</div>
+                             <div class="text-xs text-gemini-secondary mt-1">${p.status}</div>
+                        </div>
+                    </div>
+                    ${p.obs ? `<div class="mt-2 text-xs text-gemini-secondary border-t border-gemini-border pt-1">Obs: ${p.obs}</div>` : ''}
+                `;
+                workTypeDetailsList.appendChild(itemEl);
+            });
+        }
+
+        // Ensure values visibility is correct
+        toggleValuesVisibility();
+
+        workTypeDetailsModal.classList.remove('hidden');
+    };
+
     const renderizarResumoMensal = () => {
         updateMonthDisplay();
     
@@ -1621,7 +1679,7 @@ const generateProducaoPDF = () => {
             } else {
                 resumoTiposArray.forEach(item => {
                     const el = document.createElement('div');
-                    el.className = 'flex justify-between items-center p-3 rounded bg-gemini-input border border-gemini-border';
+                    el.className = 'flex justify-between items-center p-3 rounded bg-gemini-input border border-gemini-border cursor-pointer hover:bg-gray-700 transition-colors';
                     
                     const typeSpan = document.createElement('span');
                     typeSpan.className = 'font-medium text-gemini-primary truncate mr-2';
@@ -1634,6 +1692,11 @@ const generateProducaoPDF = () => {
                     
                     el.appendChild(typeSpan);
                     el.appendChild(qtySpan);
+
+                    el.addEventListener('click', () => {
+                         showWorkTypeDetails(item.tipo, producaoDoMes);
+                    });
+
                     resumoTiposContainer.appendChild(el);
                 });
             }
@@ -2500,6 +2563,12 @@ const generateProducaoPDF = () => {
 
     if (actionAddProducao) {
         actionAddProducao.addEventListener('click', openQuickAddModal);
+    }
+
+    if (workTypeDetailsModal) {
+        const closeLogic = () => workTypeDetailsModal.classList.add('hidden');
+        if (closeWorkTypeModalBtn) closeWorkTypeModalBtn.addEventListener('click', closeLogic);
+        if (closeWorkTypeModalFooterBtn) closeWorkTypeModalFooterBtn.addEventListener('click', closeLogic);
     }
     
     // Listeners do Modal Adicionar Produção Rápida
