@@ -270,9 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INTERNACIONALIZAÇÃO (i18n) ---
     const getFlagSVG = (lang) => {
         const svgs = {
-            pt: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" class="w-8 h-8 rounded-full"><path fill="#009b3a" d="M36 27a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v18z"/><path fill="#fedf00" d="M32.73 18L18 29.09 3.27 18 18 6.91z"/><circle fill="#002776" cx="18" cy="18" r="6.5"/><path fill="#fff" d="M12.63 19.34a7.6 7.6 0 0 0 10.9-1.5l.62.77a8.59 8.59 0 0 1-12.28 1.69z"/></svg>',
-            en: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" class="w-8 h-8 rounded-full"><path fill="#bd3d44" d="M32 5H4a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h28a4 4 0 0 0 4-4V9a4 4 0 0 0-4-4z"/><path fill="#fff" d="M0 9a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v1.86H0zm0 5.43h36v3.71H0zm0 7.43h36v3.71H0z"/><path fill="#192f5d" d="M0 5a4 4 0 0 0 4 4h12.57V5z"/><path fill="#192f5d" d="M0 14.43h16.57V9H0z"/></svg>',
-            es: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" class="w-8 h-8 rounded-full"><path fill="#c60b1e" d="M36 27a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v18z"/><path fill="#ffc400" d="M0 12h36v12H0z"/><path fill="#c60b1e" d="M9 14h3v3H9z"/><path fill="#c60b1e" d="M9 19h3v3H9z"/></svg>'
+            pt: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 5 36 26" preserveAspectRatio="none" class="w-full h-full object-cover"><path fill="#009b3a" d="M36 27a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v18z"/><path fill="#fedf00" d="M32.73 18L18 29.09 3.27 18 18 6.91z"/><circle fill="#002776" cx="18" cy="18" r="6.5"/><path fill="#fff" d="M12.63 19.34a7.6 7.6 0 0 0 10.9-1.5l.62.77a8.59 8.59 0 0 1-12.28 1.69z"/></svg>',
+            en: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 5 36 26" preserveAspectRatio="none" class="w-full h-full object-cover"><path fill="#bd3d44" d="M32 5H4a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h28a4 4 0 0 0 4-4V9a4 4 0 0 0-4-4z"/><path fill="#fff" d="M0 9a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v1.86H0zm0 5.43h36v3.71H0zm0 7.43h36v3.71H0z"/><path fill="#192f5d" d="M0 5a4 4 0 0 0 4 4h12.57V5z"/><path fill="#192f5d" d="M0 14.43h16.57V9H0z"/></svg>',
+            es: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 5 36 26" preserveAspectRatio="none" class="w-full h-full object-cover"><path fill="#c60b1e" d="M36 27a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v18z"/><path fill="#ffc400" d="M0 12h36v12H0z"/><path fill="#c60b1e" d="M9 14h3v3H9z"/><path fill="#c60b1e" d="M9 19h3v3H9z"/></svg>'
         };
         return svgs[lang] || svgs.pt;
     };
@@ -2312,9 +2312,7 @@ const generateProducaoPDF = () => {
 	        saveQuickNotesBtn.addEventListener('click', async () => {
                 const activeNoteIndex = state.quickNotes.findIndex(n => n.id === state.activeQuickNoteId);
                 if (activeNoteIndex === -1) {
-                    showToast(t('toast_error_save_note')); // Using generic save error or specific if added. Using 'toast_error_save_note' which I added. Wait, "Nenhuma nota selecionada" is not "Erro ao salvar". I didn't add a key for "No note selected". I'll skip this one or use generic error.
-                    // Actually I didn't add "Nenhuma nota selecionada". I'll leave it hardcoded or add it.
-                    // Let's check `toast_error_save_note`.
+                    showToast(t('toast_no_note_selected'));
                     return;
                 }
                 

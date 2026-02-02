@@ -196,6 +196,7 @@ export const translations = {
         toast_confirm_delete_note: "Tem certeza que quer apagar a nota",
         toast_cant_delete_last_note: "Não pode apagar a última nota.",
         toast_note_saved: "Nota salva com sucesso!",
+        toast_no_note_selected: "Nenhuma nota selecionada.",
         toast_error_save_note: "Erro ao salvar notas.",
         toast_upload_fail: "Falha no upload do anexo.",
 
@@ -407,6 +408,7 @@ export const translations = {
         toast_confirm_delete_note: "Are you sure you want to delete the note",
         toast_cant_delete_last_note: "Cannot delete the last note.",
         toast_note_saved: "Note saved successfully!",
+        toast_no_note_selected: "No note selected.",
         toast_error_save_note: "Error saving notes.",
         toast_upload_fail: "Attachment upload failed.",
 
@@ -618,6 +620,7 @@ export const translations = {
         toast_confirm_delete_note: "¿Seguro que desea borrar la nota",
         toast_cant_delete_last_note: "No se puede borrar la última nota.",
         toast_note_saved: "¡Nota guardada con éxito!",
+        toast_no_note_selected: "Ninguna nota seleccionada.",
         toast_error_save_note: "Error al guardar notas.",
         toast_upload_fail: "Fallo al subir el archivo adjunto.",
 
