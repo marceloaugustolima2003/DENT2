@@ -4,9 +4,15 @@
     min-height: 48px;
 }
 
-html, body {
+html {
+    background-color: #0d1117; /* Ensure dark background behind body (fixes mobile overscroll white flash) */
     height: 100%;
+}
+
+body {
+    min-height: 100%; /* Changed from height:100% to allow expansion */
     overflow-x: hidden;
+    position: relative; /* Ensure background works correctly */
 }
 
 .dark-scrollbar::-webkit-scrollbar { 
@@ -658,8 +664,36 @@ select#producao-tipo-select,
 select#producao-dentista-select,
 select#producao-status-select,
 select#despesa-categoria-select,
-select#filter-status-select {
+select#filter-status-select,
+input#producao-dentista-input,
+input#quick-producao-dentista-input {
     color-scheme: dark;
+}
+
+/* Adiciona a seta de dropdown também aos inputs de dentista (datalist) para manter a identidade visual */
+input#producao-dentista-input,
+input#quick-producao-dentista-input {
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                      linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(1em + 2px),
+                         calc(100% - 15px) calc(1em + 2px);
+    background-size: 5px 5px,
+                    5px 5px;
+    background-repeat: no-repeat;
+    cursor: pointer; /* Sugere que é clicável como um dropdown */
+}
+
+/* Tenta ocultar o indicador nativo do datalist no Chrome para não duplicar setas,
+   mas mantendo a funcionalidade (area clicavel) */
+input#producao-dentista-input::-webkit-calendar-picker-indicator,
+input#quick-producao-dentista-input::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    cursor: pointer;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 2.5rem; /* Área clicável sobre a nossa seta customizada */
 }
 
 select option {
@@ -705,6 +739,11 @@ select option {
 #quick-notes-tabs-list::-webkit-scrollbar-thumb {
     background: #5f6368;
     border-radius: 2px;
+}
+
+#language-select {
+    min-width: 80px;
+    backdrop-filter: blur(8px);
 }
 
 /* final do arquivo */
