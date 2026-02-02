@@ -107,7 +107,7 @@
         <div id="side-menu-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
         <aside id="side-menu" class="fixed top-0 left-0 h-full w-64 bg-gemini-dark-card shadow-lg z-40 transform -translate-x-full lg:translate-x-0 lg:sticky lg:h-screen lg:flex-shrink-0">
             <div class="p-4 border-b border-gemini-border flex justify-between items-center">
-                <h2 class="text-xl font-bold gradient-text">Menu</h2>
+                <h2 class="text-xl font-bold gradient-text" data-i18n="menu_title">Menu</h2>
                 <button id="menu-close-btn" class="p-2 rounded-full hover:bg-gray-700 lg:hidden">
                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
@@ -183,12 +183,12 @@
                             
                             <div id="notifications-dropdown" class="absolute right-0 mt-2 w-80 bg-gemini-dark-card rounded-lg shadow-lg border border-gemini-border hidden z-50">
                                 <div class="p-4 border-b border-gemini-border">
-                                    <h3 class="font-semibold text-gemini-primary">Notificações</h3>
+                                    <h3 class="font-semibold text-gemini-primary" data-i18n="notifications_title">Notificações</h3>
                                 </div>
                                 <div id="notifications-list" class="max-h-64 overflow-y-auto dark-scrollbar">
                                     </div>
                                 <div class="p-3 border-t border-gemini-border">
-                                    <button id="clear-notifications" class="text-sm text-accent-blue hover:underline">Limpar todas</button>
+                                    <button id="clear-notifications" class="text-sm text-accent-blue hover:underline" data-i18n="notifications_clear">Limpar todas</button>
                                 </div>
                             </div>
                         </div>
@@ -912,11 +912,23 @@
     <datalist id="pacientes-list"></datalist>
     <datalist id="dentistas-list"></datalist>
 
-    <select id="language-select" class="fixed bottom-4 left-4 z-50 p-2 rounded-lg bg-gemini-input text-gemini-primary border border-gemini-border focus:outline-none focus:ring-2 focus:ring-accent-purple shadow-lg font-medium cursor-pointer">
-        <option value="pt">PT</option>
-        <option value="en">EN</option>
-        <option value="es">ES</option>
-    </select>
+    <div id="language-selector-container" class="fixed bottom-4 left-4 z-50 flex flex-col-reverse items-center gap-3">
+        <button id="current-language-btn" class="p-0 w-12 h-12 rounded-full bg-gemini-input border border-gemini-border focus:outline-none focus:ring-2 focus:ring-accent-purple shadow-lg cursor-pointer flex items-center justify-center hover:scale-110 transition-transform">
+            <!-- Icon will be injected by JS -->
+        </button>
+
+        <div id="language-options" class="flex flex-col gap-2 opacity-0 translate-y-4 pointer-events-none transition-all duration-300">
+            <button data-lang="pt" class="lang-option-btn p-0 w-10 h-10 rounded-full shadow-lg hover:scale-110 transition-transform bg-white border-2 border-white overflow-hidden" title="Português">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" class="w-full h-full object-cover"><path fill="#009b3a" d="M36 27a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v18z"/><path fill="#fedf00" d="M32.73 18L18 29.09 3.27 18 18 6.91z"/><circle fill="#002776" cx="18" cy="18" r="6.5"/><path fill="#fff" d="M12.63 19.34a7.6 7.6 0 0 0 10.9-1.5l.62.77a8.59 8.59 0 0 1-12.28 1.69z"/></svg>
+            </button>
+            <button data-lang="en" class="lang-option-btn p-0 w-10 h-10 rounded-full shadow-lg hover:scale-110 transition-transform bg-white border-2 border-white overflow-hidden" title="English">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" class="w-full h-full object-cover"><path fill="#bd3d44" d="M32 5H4a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h28a4 4 0 0 0 4-4V9a4 4 0 0 0-4-4z"/><path fill="#fff" d="M0 9a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v1.86H0zm0 5.43h36v3.71H0zm0 7.43h36v3.71H0z"/><path fill="#192f5d" d="M0 5a4 4 0 0 0 4 4h12.57V5z"/><path fill="#192f5d" d="M0 14.43h16.57V9H0z"/></svg>
+            </button>
+            <button data-lang="es" class="lang-option-btn p-0 w-10 h-10 rounded-full shadow-lg hover:scale-110 transition-transform bg-white border-2 border-white overflow-hidden" title="Español">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" class="w-full h-full object-cover"><path fill="#c60b1e" d="M36 27a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v18z"/><path fill="#ffc400" d="M0 12h36v12H0z"/><path fill="#c60b1e" d="M9 14h3v3H9z"/><path fill="#c60b1e" d="M9 19h3v3H9z"/></svg>
+            </button>
+        </div>
+    </div>
 
     <script type="module" src="app.js"></script>
 
